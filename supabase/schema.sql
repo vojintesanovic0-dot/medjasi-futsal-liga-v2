@@ -526,7 +526,7 @@ create policy media_insert on storage.objects for insert to authenticated with c
 
 drop policy if exists media_delete on storage.objects;
 create policy media_delete on storage.objects for delete to authenticated using (
-  bucket_id = 'media' and (public.is_staff() or owner = auth.uid()));
+  bucket_id = 'media' and (public.is_staff() or owner_id = (select auth.uid()::text)));
 
 -- =====================================================================
 -- PUSH OBAVJEŠTENJA: pretplate (čita ih samo server, Edge Function send-push)
