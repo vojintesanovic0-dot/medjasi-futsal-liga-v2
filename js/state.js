@@ -19,9 +19,12 @@ export async function initAuth() {
   state.session = data.session;
   await loadProfile();
   state.ready = true;
-  sb.auth.onAuthStateChange(async (_event, session) => {
+  // Run database calls outside the auth callback to avoid holding the auth lock.
+  sb.auth.onAuthStateChange((_event, session) => {
     state.session = session;
-    await loadProfile();
-    listeners.forEach((fn) => fn(state, _event));
+    queueMicrotask(async () => {
+      await loadProfile();
+      listeners.forEach((fn) => fn(state, _event));
+    });
   });
 }
