@@ -1,0 +1,44 @@
+<!doctype html>
+<html lang="bs">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>Međasi Futsal Liga</title>
+  <meta name="description" content="Međasi Futsal Liga — utakmice uživo, tabela, ekipe, vijesti i galerija.">
+  <meta name="theme-color" content="#0b0d12">
+  <link rel="manifest" href="manifest.json">
+  <link rel="apple-touch-icon" href="images/icon-192.png">
+  <link rel="icon" href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'><text y='.9em' font-size='90'>⚽</text></svg>">
+  <link rel="stylesheet" href="css/style.css">
+  <script type="module" src="js/app.js"></script>
+</head>
+<body>
+  <a class="skip" href="#app">Preskoči na sadržaj</a>
+  <header class="topbar">
+    <div class="wrap bar">
+      <a class="brand" href="#/"><span class="brand-mark">M</span><span>Međasi<small>Futsal Liga</small></span></a>
+      <button id="nav-toggle" class="burger" aria-label="Meni" aria-controls="nav">☰</button>
+      <nav id="nav" class="nav" aria-label="Glavna navigacija">
+        <a data-nav="/" href="#/">Početna</a>
+        <a data-nav="utakmice" href="#/utakmice">Utakmice</a>
+        <a data-nav="tabela" href="#/tabela">Tabela</a>
+        <a data-nav="ekipe" href="#/ekipe">Ekipe</a>
+        <a data-nav="vijesti" href="#/vijesti">Vijesti</a>
+        <a data-nav="fan" href="#/fan">Fan game</a>
+        <a data-nav="zajednica" href="#/zajednica">Zajednica</a>
+        <a data-nav="galerija" href="#/galerija">Galerija</a>
+        <a data-nav="chat" href="#/chat">Chat</a>
+      </nav>
+      <div id="nav-user" class="nav-user"></div>
+    </div>
+  </header>
+  <main id="app" class="wrap" tabindex="-1">
+    <div class="loader">Učitavanje…</div>
+  </main>
+  <footer class="footer">
+    <div class="wrap">© <span id="year"></span> Međasi Futsal Liga</div>
+  </footer>
+  <div id="toasts" class="toasts" aria-live="polite"></div>
+  <script>document.getElementById('year').textContent = new Date().getFullYear();</script>
+</body>
+</html>
