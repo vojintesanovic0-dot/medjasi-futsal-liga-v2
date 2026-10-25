@@ -1,0 +1,82 @@
+import { sb } from './supabase.js';
+
+const unwrap = async (q) => { const { data, error } = await q; if (error) throw error; return data; };
+const TEAM = 'id,name,short_name,logo_url,color';
+const MATCH_SELECT = `*, home:teams!matches_home_team_id_fkey(${TEAM}), away:teams!matches_away_team_id_fkey(${TEAM})`;
+
+export const getActiveSeason = () => unwrap(sb.from('seasons').select('*').eq('is_active', true).maybeSingle());
+export const getSeasons = () => unwrap(sb.from('seasons').select('*').order('id', { ascending: false }));
+export const getStandings = () => unwrap(sb.from('standings').select('*')
+  .order('points', { ascending: false }).order('goal_diff', { ascending: false })
+  .order('goals_for', { ascending: false }).order('name'));
+export const getTeams = () => unwrap(sb.from('teams').select(TEAM).order('name'));
+export const getTeam = (id) => unwrap(sb.from('teams').select('*').eq('id', id).maybeSingle());
+export const getPlayers = (teamId) => teamId
+  ? unwrap(sb.from('players').select('*').eq('team_id', teamId).order('number'))
+  : unwrap(sb.from('players').select('*, team:teams(id,name,short_name)').order('last_name'));
+export const getMatches = (seasonId) => unwrap(sb.from('matches').select(MATCH_SELECT)
+  .eq('season_id', seasonId).order('scheduled_at'));
+export const getMatch = (id) => unwrap(sb.from('matches').select(MATCH_SELECT).eq('id', id).maybeSingle());
+export const getEvents = (matchId) => unwrap(sb.from('match_events')
+  .select('*, player:players!match_events_player_id_fkey(id,first_name,last_name,number), assist:players!match_events_assist_id_fkey(id,first_name,last_name)')
+  .eq('match_id', matchId).order('minute').order('created_at'));
+export const getPublishedNews = (limit = 50) => unwrap(sb.from('news').select('*')
+  .eq('published', true).order('published_at', { ascending: false }).limit(limit));
+export const getNewsBySlug = (slug) => unwrap(sb.from('news').select('*').eq('slug', slug).maybeSingle());
+export const getAllNews = () => unwrap(sb.from('news').select('*').order('created_at', { ascending: false }));
+export const getGallery = () => unwrap(sb.from('gallery').select('*').order('created_at', { ascending: false }).limit(120));
+export const getProfile = (id) => unwrap(sb.from('profiles').select('id,username,display_name,avatar_url,bio,role').eq('id', id).maybeSingle());
+
+// ---------- Fan game ----------
+export const getOpenMatches = (seasonId) => unwrap(sb.from('matches').select(MATCH_SELECT)
+  .eq('season_id', seasonId).eq('status', 'scheduled').order('scheduled_at').limit(30));
+export const getMyPredictions = (userId) => unwrap(sb.from('fan_predictions')
+  .select('*').eq('user_id', userId));
+export const getAllPredictionsForMatches = (matchIds) => matchIds.length
+  ? unwrap(sb.from('fan_predictions').select('match_id, home_pred, away_pred').in('match_id', matchIds))
+  : Promise.resolve([]);
+export const getLeaderboard = () => unwrap(sb.from('fan_leaderboard').select('*')
+  .order('points', { ascending: false }).order('exact_hits', { ascending: false }).limit(50));
+export const getMyPoints = (userId) => unwrap(sb.from('fan_points')
+  .select('points, exact_hit, match_id').eq('user_id', userId).not('points', 'is', null));
+export const savePrediction = (userId, matchId, homePred, awayPred) => unwrap(sb.from('fan_predictions')
+  .upsert({ user_id: userId, match_id: matchId, home_pred: homePred, away_pred: awayPred,
+            updated_at: new Date().toISOString() }, { onConflict: 'user_id,match_id' }).select());
+
+// ---------- Zajednica ----------
+export const getFeed = (limit = 30, before = null) => {
+  let q = sb.from('post_feed').select('*').order('created_at', { ascending: false }).limit(limit);
+  if (before) q = q.lt('created_at', before);
+  return unwrap(q);
+};
+export const getMyLikes = (userId) => unwrap(sb.from('post_likes').select('post_id').eq('user_id', userId));
+export const getComments = (postId) => unwrap(sb.from('post_comments').select('*')
+  .eq('post_id', postId).order('created_at').limit(200));
+export const createPost = (userId, content, imageUrl) => unwrap(sb.from('posts')
+  .insert({ user_id: userId, content, image_url: imageUrl || null }).select().single());
+export const addComment = (userId, postId, content) => unwrap(sb.from('post_comments')
+  .insert({ user_id: userId, post_id: postId, username: 'korisnik', content }).select().single());
+export const likePost = (userId, postId) => unwrap(sb.from('post_likes').insert({ user_id: userId, post_id: postId }));
+export const unlikePost = (userId, postId) => unwrap(sb.from('post_likes').delete()
+  .eq('user_id', userId).eq('post_id', postId));
+export const deletePost = (postId) => unwrap(sb.from('posts').delete().eq('id', postId).select());
+
+// ---------- Mediji (Storage bucket "media") ----------
+export async function uploadMedia(file, folder) {
+  const ext = (file.name.split('.').pop() || 'bin').toLowerCase().replace(/[^a-z0-9]/g, '').slice(0, 5);
+  const path = `${folder}/${Date.now()}-${Math.random().toString(36).slice(2, 8)}.${ext}`;
+  const { error } = await sb.storage.from('media').upload(path, file, { cacheControl: '3600', contentType: file.type });
+  if (error) throw error;
+  return sb.storage.from('media').getPublicUrl(path).data.publicUrl;
+}
+
+// ---------- Galerija (staff) ----------
+export const addGalleryItem = (item) => unwrap(sb.from('gallery').insert(item).select().single());
+export const deleteGalleryItem = (id) => unwrap(sb.from('gallery').delete().eq('id', id).select());
+
+// ---------- Push ----------
+export const saveSubscription = (userId, sub) => unwrap(sb.from('push_subscriptions').upsert({
+  user_id: userId, endpoint: sub.endpoint,
+  p256dh: sub.keys.p256dh, auth: sub.keys.auth,
+}, { onConflict: 'endpoint' }).select());
+export const removeSubscription = (endpoint) => unwrap(sb.from('push_subscriptions').delete().eq('endpoint', endpoint));
