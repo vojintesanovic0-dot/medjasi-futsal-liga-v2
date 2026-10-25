@@ -729,3 +729,63 @@ from public.profiles pr join scored sc on sc.user_id = pr.id
 group by pr.id, pr.username, pr.display_name;
 
 grant select on public.fan_prediction_distribution, public.fan_leaderboard to anon, authenticated;
+
+
+-- Public fan stats are exposed through aggregate-only RPCs rather than SECURITY DEFINER views.
+drop view if exists public.fan_prediction_distribution;
+drop view if exists public.fan_leaderboard;
+
+create schema if not exists private;
+revoke all on schema private from public;
+grant usage on schema private to anon, authenticated;
+
+create or replace function private.get_fan_prediction_distribution(p_match_ids uuid[])
+returns table(match_id uuid, total integer, home_wins integer, draws integer, away_wins integer)
+language sql stable security definer set search_path = public, pg_temp as $$
+  select p.match_id, count(*)::int,
+         sum(case when p.home_pred > p.away_pred then 1 else 0 end)::int,
+         sum(case when p.home_pred = p.away_pred then 1 else 0 end)::int,
+         sum(case when p.home_pred < p.away_pred then 1 else 0 end)::int
+  from public.fan_predictions p
+  where p.match_id = any(p_match_ids)
+  group by p.match_id
+$$;
+
+create or replace function private.get_fan_leaderboard()
+returns table(user_id uuid, username text, display_name text, points integer, exact_hits integer, predictions integer)
+language sql stable security definer set search_path = public, pg_temp as $$
+  with scored as (
+    select p.user_id,
+      case when m.status = 'finished' then
+        (case when sign(p.home_pred - p.away_pred) = sign(m.home_score - m.away_score) then 3 else 0 end
+         + case when p.home_pred = m.home_score and p.away_pred = m.away_score then 2 else 0 end)
+      end as points,
+      case when m.status = 'finished' and p.home_pred = m.home_score and p.away_pred = m.away_score then 1 else 0 end as exact_hit
+    from public.fan_predictions p
+    join public.matches m on m.id = p.match_id
+    join public.seasons s on s.id = m.season_id and s.is_active
+  )
+  select pr.id, pr.username, pr.display_name, coalesce(sum(sc.points), 0)::int,
+         coalesce(sum(sc.exact_hit), 0)::int, count(sc.user_id)::int
+  from public.profiles pr join scored sc on sc.user_id = pr.id
+  group by pr.id, pr.username, pr.display_name
+$$;
+
+revoke all on function private.get_fan_prediction_distribution(uuid[]) from public, anon, authenticated;
+revoke all on function private.get_fan_leaderboard() from public, anon, authenticated;
+grant execute on function private.get_fan_prediction_distribution(uuid[]) to anon, authenticated;
+grant execute on function private.get_fan_leaderboard() to anon, authenticated;
+
+create or replace function public.get_fan_prediction_distribution(match_ids uuid[])
+returns table(match_id uuid, total integer, home_wins integer, draws integer, away_wins integer)
+language sql stable security invoker set search_path = public, pg_temp as $$
+  select * from private.get_fan_prediction_distribution(match_ids)
+$$;
+
+create or replace function public.get_fan_leaderboard()
+returns table(user_id uuid, username text, display_name text, points integer, exact_hits integer, predictions integer)
+language sql stable security invoker set search_path = public, pg_temp as $$
+  select * from private.get_fan_leaderboard()
+$$;
+
+grant execute on function public.get_fan_prediction_distribution(uuid[]), public.get_fan_leaderboard() to anon, authenticated;
