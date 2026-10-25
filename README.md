@@ -13,7 +13,7 @@ Odvojeni projekat sajta lige. Novi frontend je povezan s novim Supabase projekto
 - Frontend `js/config.js` je povezan s URL-om i javnim `sb_publishable_` ključem novog projekta.
 - GitHub Actions validacija prolazi.
 - **GitHub Pages još nije aktiviran:** automatizacija nema GitHub dozvolu da prvi put uključi Pages stranicu. Jednokratno uključi Pages u repo podešavanjima (koraci ispod). Nakon toga workflow automatski objavljuje stranicu.
-- Push obavještenja nisu spremna za produkciju dok se ne podese VAPID ključevi kao Supabase secrets; privatni ključ se ne stavlja u frontend ili repozitorij.
+- Edge Function `send-push` je deploy-ovana u Supabase, ali push slanje nije spremno za produkciju dok se ne podese VAPID ključevi kao Supabase secrets; privatni ključ se ne stavlja u frontend ili repozitorij.
 
 ## 1. Jednokratno uključi GitHub Pages
 
