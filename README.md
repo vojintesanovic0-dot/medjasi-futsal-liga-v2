@@ -1,91 +1,82 @@
 # Međasi Futsal Liga — v2
 
-Odvojeni projekat sajta lige. Ovaj repozitorij je odvojen od starog repozitorija i ima vlastitu Supabase šemu.
+Odvojeni projekat sajta lige. Novi frontend je povezan s novim Supabase projektom; stari sajt i njegova baza nisu mijenjani.
 
-## Tehnologije
+- **GitHub repo:** https://github.com/vojintesanovic0-dot/medjasi-futsal-liga-v2
+- **Supabase project:** https://supabase.com/dashboard/project/fmrypbvjaytecjinpsnp
+- **Target URL:** https://vojintesanovic0-dot.github.io/medjasi-futsal-liga-v2/
 
-- Frontend: HTML, CSS i JavaScript ES moduli; nema build koraka.
-- Backend: Supabase Auth, PostgreSQL, RLS, Realtime i Storage.
-- PWA: `manifest.json` i `sw.js`.
-- Push obavještenja: Edge Function `supabase/functions/send-push/index.ts`.
+## Status
 
-## 1. Napravi novi Supabase projekat
+- Nova Supabase baza je kreirana u EU Central i šema je primijenjena.
+- RLS je uključen na svih 14 glavnih tabela.
+- Frontend `js/config.js` je povezan s URL-om i javnim `sb_publishable_` ključem novog projekta.
+- GitHub Actions validacija prolazi.
+- **GitHub Pages još nije aktiviran:** automatizacija nema GitHub dozvolu da prvi put uključi Pages stranicu. Jednokratno uključi Pages u repo podešavanjima (koraci ispod). Nakon toga workflow automatski objavljuje stranicu.
+- Push obavještenja nisu spremna za produkciju dok se ne podese VAPID ključevi kao Supabase secrets; privatni ključ se ne stavlja u frontend ili repozitorij.
 
-1. Kreiraj **novi** projekat na Supabaseu. Nemoj pokretati šemu nad bazom starog sajta.
-2. Otvori **SQL Editor → New query**.
-3. Zalijepi cijeli `supabase/schema.sql` i pokreni ga jednom.
-4. U **Authentication → Providers → Email** provjeri postavke potvrde e-maila.
-5. U **Project Settings → API** kopiraj Project URL i anon/public ključ.
+## 1. Jednokratno uključi GitHub Pages
 
-**Napomena:** SQL šema još nije pokrenuta na živom projektu u sklopu pripreme repozitorija.
+Otvori [Settings → Pages](https://github.com/vojintesanovic0-dot/medjasi-futsal-liga-v2/settings/pages), pa u sekciji **Build and deployment** postavi **Source: GitHub Actions**. Sačuvaj ako se dugme Save prikaže. To omogućava workflow-u `.github/workflows/pages.yml` da objavi sajt na target URL-u iznad.
 
-## 2. Podesi frontend
+## 2. Supabase
 
-Otvori `js/config.js` i zamijeni oba placeholdera podacima iz *novog* Supabase projekta:
+Novi projekat je već kreiran:
 
-```js
-export const SUPABASE_URL = 'https://TVOJ-REF.supabase.co';
-export const SUPABASE_ANON_KEY = 'TVOJ-ANON-PUBLIC-KLJUC';
-```
+- Project ref: `fmrypbvjaytecjinpsnp`
+- URL: `https://fmrypbvjaytecjinpsnp.supabase.co`
+- Regija: `eu-central-1` (EU Central)
 
-U frontend nikad ne upisuj `service_role` ključ. On pripada samo sigurnom server-side okruženju/Edge Function secrets.
+Šema se nalazi u `supabase/schema.sql`; izvršena je u novoj bazi i zasebne bezbjednosne migracije su zabilježene u istoriji projekta.
 
-Dok `js/config.js` sadrži placeholder vrijednosti, aplikacija se neće moći povezati s bazom.
+Nakon prvog uključivanja GitHub Pages, u Supabase otvori **Authentication → URL Configuration** i postavi:
+
+- **Site URL:** `https://vojintesanovic0-dot.github.io/medjasi-futsal-liga-v2/`
+- **Redirect URLs:** dodaj istu adresu.
+
+To je važno za e-mail potvrdu i povratak nakon prijave.
 
 ## 3. Prvi administrator
 
-1. Pokreni sajt i registruj nalog.
-2. U SQL Editoru pokreni naredbu ispod, zamjenjujući korisničko ime stvarnim imenom iz profila:
+1. Otvori sajt nakon objave i registruj se u **Prijava → Registracija**.
+2. U [Supabase SQL Editoru](https://supabase.com/dashboard/project/fmrypbvjaytecjinpsnp/sql/new) pokreni sljedeći SQL uz tačno korisničko ime koje si izabrao:
 
 ```sql
-update public.profiles set role = 'admin' where username = 'tvoje_ime';
+update public.profiles set role = 'admin' where username = 'tvoje_korisnicko_ime';
 ```
 
-3. Osvježi sajt.
+3. Odjavi se i prijavi ponovo. Admin dugme treba da postane vidljivo.
 
-Uloge u šemi: `user`, `editor` i `admin`. Šema ograničava korisnike da sami sebi dodijele administratorsku ulogu.
+Uloge: `user`, `editor` (vijesti i galerija) i `admin` (sve).
 
-## 4. Početak rada
+## 4. Početno podešavanje lige
 
-1. U administraciji napravi sezonu i aktiviraj je.
-2. Dodaj ekipe i igrače.
-3. Dodaj utakmice, kola, datum i teren.
-4. Tokom utakmice koristi kontrole za početak/pauzu/nastavak, promjenu perioda i završetak te dodaj događaje.
-5. Objavljuj vijesti i dodaj sadržaj galerije.
+U administraciji dodaj i aktiviraj sezonu (npr. `2026/27`), zatim dodaj ekipe, igrače i raspored utakmica. Nova baza počinje prazna; podaci nisu automatski prekopirani iz starog sajta.
 
 ## 5. Pokretanje lokalno
-
-Pokreni statički server iz korijena projekta. ES moduli ne rade pouzdano preko `file://`.
 
 ```bash
 python3 -m http.server 8080
 ```
 
-Zatim otvori `http://localhost:8080`.
+Otvori `http://localhost:8080`. ES moduli ne rade pouzdano preko `file://`.
 
-## 6. Push obavještenja (opciono)
+## 6. Funkcije
 
-1. Generiši VAPID ključeve.
-2. Upiši javni ključ u `js/config.js`.
-3. Dodaj secrets u Supabase: `VAPID_PUBLIC_KEY`, `VAPID_PRIVATE_KEY` i `VAPID_SUBJECT`.
-4. Deploy Edge Function `send-push` preko Supabase CLI-ja.
+- Uživo utakmice, sat, periodi, događaji i rezultat iz događaja.
+- Tabela, ekipe, sastavi i igrači.
+- Vijesti, javna galerija i chat.
+- Fan game, anonimna raspodjela prognoza i rang-lista.
+- Zajednica s objavama, slikama, komentarima i lajkovima.
+- PWA manifest i service worker.
+- Edge Function izvor za push nalazi se u `supabase/functions/send-push/index.ts`.
 
-Push nije aktiviran niti testiran na živom projektu. Edge Function nikad ne treba izlagati service-role ključ u frontend kodu.
+Naslovna slika vijesti se unosi kao URL u admin panelu; upload slike direktno s uređaja u vijesti još nije povezan. Push zahtijeva VAPID ključeve i test na stvarnom uređaju.
 
-## Šta treba završiti prije produkcije
+## 7. Provjere
 
-- Unijeti ispravne URL/anon podatke novog Supabase projekta.
-- Pokrenuti šemu samo u novoj bazi i provjeriti da se kompletno izvršila.
-- Testirati registraciju/prijavu, uloge, čitanje i upis podataka s pravim Supabase projektom.
-- Testirati upload, Storage pravila, Realtime, PWA instalaciju i push na stvarnim uređajima.
-- Provjeriti JavaScript i rute nakon završnog povezivanja s bazom.
-
-## Struktura
-
-- `index.html` — osnovni okvir i navigacija.
-- `css/style.css` — tema i responzivni raspored.
-- `js/config.js` — konfiguracija Supabasea.
-- `js/pages/` — stranice lige, utakmica, tabela, vijesti, galerije, chata, fan igre, zajednice i administracije.
-- `supabase/schema.sql` — tabele, funkcije, triggeri, pogledi, RLS, Storage i Realtime.
-- `supabase/functions/send-push/index.ts` — Edge Function za push.
-
+- GitHub Actions provjera sintakse, lokalnih importova, HTML referenci, PWA ikonica i potrebnih SQL tabela prolazi.
+- Supabase je potvrdio 14 tabela s uključenim RLS-om.
+- Security advisors trenutno ne prikazuju upozorenja.
+- RPC za fan raspodjelu i rang-listu izvršava se uspješno nad praznom bazom.
+- Registracija kroz browser, stvarna prijava, objava vijesti, Storage upload i mobilni push još zahtijevaju test nakon aktiviranja Pages i kreiranja prvog admin naloga.
