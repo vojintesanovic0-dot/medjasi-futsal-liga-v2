@@ -566,3 +566,166 @@ grant select, insert, update, delete on public.push_subscriptions to authenticat
 -- ---------- Prvi admin ----------
 -- Nakon što se registruješ na sajtu, u SQL Editoru pokreni (zamijeni username):
 --   update public.profiles set role = 'admin' where username = 'tvoj_username';
+
+
+-- =====================================================================
+-- SECURITY HARDENING (also stored as post-initialization migrations)
+-- =====================================================================
+create or replace function public.current_role_name()
+returns text language sql stable security invoker set search_path = public, pg_temp as $$
+  select coalesce((select p.role from public.profiles p where p.id = (select auth.uid())), 'anon')
+$$;
+
+create or replace function public.is_admin()
+returns boolean language sql stable security invoker set search_path = public, pg_temp as $$
+  select exists (select 1 from public.profiles p
+                 where p.id = (select auth.uid()) and p.role = 'admin')
+$$;
+
+create or replace function public.is_staff()
+returns boolean language sql stable security invoker set search_path = public, pg_temp as $$
+  select exists (select 1 from public.profiles p
+                 where p.id = (select auth.uid()) and p.role in ('admin','editor'))
+$$;
+
+create or replace function public.guard_profile_role()
+returns trigger language plpgsql set search_path = public, pg_temp as $$
+begin
+  if new.role is distinct from old.role
+     and auth.uid() is not null
+     and not public.is_admin() then
+    raise exception 'Nemaš pravo da mijenjaš ulogu.';
+  end if;
+  return new;
+end $$;
+
+revoke execute on function public.current_role_name() from public, anon, authenticated;
+revoke execute on function public.guard_profile_role() from public, anon, authenticated;
+revoke execute on function public.handle_new_user() from public, anon, authenticated;
+revoke execute on function public.recalc_match_score() from public, anon, authenticated;
+revoke execute on function public.stamp_comment() from public, anon, authenticated;
+revoke execute on function public.stamp_message() from public, anon, authenticated;
+
+drop policy if exists profiles_admin_all on public.profiles;
+drop policy if exists profiles_update_own on public.profiles;
+create policy profiles_update_own on public.profiles for update to authenticated
+  using (id = (select auth.uid()) or (select public.is_admin()))
+  with check (id = (select auth.uid()) or (select public.is_admin()));
+drop policy if exists profiles_admin_insert on public.profiles;
+create policy profiles_admin_insert on public.profiles for insert to authenticated with check ((select public.is_admin()));
+drop policy if exists profiles_admin_delete on public.profiles;
+create policy profiles_admin_delete on public.profiles for delete to authenticated using ((select public.is_admin()));
+
+do $$
+declare t text;
+begin
+  foreach t in array array['seasons','teams','players','matches','match_events'] loop
+    execute format('drop policy if exists %I on public.%I', t||'_admin_write', t);
+    execute format('drop policy if exists %I on public.%I', t||'_admin_insert', t);
+    execute format('drop policy if exists %I on public.%I', t||'_admin_update', t);
+    execute format('drop policy if exists %I on public.%I', t||'_admin_delete', t);
+    execute format('create policy %I on public.%I for insert to authenticated with check ((select public.is_admin()))', t||'_admin_insert', t);
+    execute format('create policy %I on public.%I for update to authenticated using ((select public.is_admin())) with check ((select public.is_admin()))', t||'_admin_update', t);
+    execute format('create policy %I on public.%I for delete to authenticated using ((select public.is_admin()))', t||'_admin_delete', t);
+  end loop;
+end $$;
+
+drop policy if exists news_staff_write on public.news;
+drop policy if exists news_staff_insert on public.news;
+drop policy if exists news_staff_update on public.news;
+drop policy if exists news_staff_delete on public.news;
+create policy news_staff_insert on public.news for insert to authenticated with check ((select public.is_staff()));
+create policy news_staff_update on public.news for update to authenticated using ((select public.is_staff())) with check ((select public.is_staff()));
+create policy news_staff_delete on public.news for delete to authenticated using ((select public.is_staff()));
+
+drop policy if exists gallery_staff_write on public.gallery;
+drop policy if exists gallery_staff_insert on public.gallery;
+drop policy if exists gallery_staff_update on public.gallery;
+drop policy if exists gallery_staff_delete on public.gallery;
+create policy gallery_staff_insert on public.gallery for insert to authenticated with check ((select public.is_staff()));
+create policy gallery_staff_update on public.gallery for update to authenticated using ((select public.is_staff())) with check ((select public.is_staff()));
+create policy gallery_staff_delete on public.gallery for delete to authenticated using ((select public.is_staff()));
+
+drop policy if exists messages_insert_own on public.messages;
+create policy messages_insert_own on public.messages for insert to authenticated with check (user_id = (select auth.uid()));
+drop policy if exists messages_delete on public.messages;
+create policy messages_delete on public.messages for delete to authenticated using (user_id = (select auth.uid()) or (select public.is_admin()));
+
+drop policy if exists fan_pred_insert on public.fan_predictions;
+create policy fan_pred_insert on public.fan_predictions for insert to authenticated with check (
+  user_id = (select auth.uid()) and exists (select 1 from public.matches m
+    where m.id = match_id and m.status = 'scheduled' and m.scheduled_at > now()));
+drop policy if exists fan_pred_update on public.fan_predictions;
+create policy fan_pred_update on public.fan_predictions for update to authenticated
+  using (user_id = (select auth.uid()) and exists (select 1 from public.matches m
+    where m.id = match_id and m.status = 'scheduled' and m.scheduled_at > now()))
+  with check (user_id = (select auth.uid()));
+drop policy if exists fan_pred_delete on public.fan_predictions;
+create policy fan_pred_delete on public.fan_predictions for delete to authenticated
+  using (user_id = (select auth.uid()) or (select public.is_admin()));
+
+drop policy if exists posts_insert_own on public.posts;
+create policy posts_insert_own on public.posts for insert to authenticated with check (user_id = (select auth.uid()));
+drop policy if exists posts_delete on public.posts;
+create policy posts_delete on public.posts for delete to authenticated using (user_id = (select auth.uid()) or (select public.is_staff()));
+drop policy if exists comments_insert_own on public.post_comments;
+create policy comments_insert_own on public.post_comments for insert to authenticated with check (user_id = (select auth.uid()));
+drop policy if exists comments_delete on public.post_comments;
+create policy comments_delete on public.post_comments for delete to authenticated using (user_id = (select auth.uid()) or (select public.is_staff()));
+drop policy if exists likes_insert_own on public.post_likes;
+create policy likes_insert_own on public.post_likes for insert to authenticated with check (user_id = (select auth.uid()));
+drop policy if exists likes_delete_own on public.post_likes;
+create policy likes_delete_own on public.post_likes for delete to authenticated using (user_id = (select auth.uid()));
+drop policy if exists push_own on public.push_subscriptions;
+create policy push_own on public.push_subscriptions for all to authenticated
+  using (user_id = (select auth.uid())) with check (user_id = (select auth.uid()));
+
+drop policy if exists media_delete on storage.objects;
+create policy media_delete on storage.objects for delete to authenticated using (
+  bucket_id = 'media' and ((select public.is_staff()) or owner_id = (select auth.uid()::text)));
+
+create index if not exists fan_predictions_match_idx on public.fan_predictions(match_id);
+create index if not exists gallery_uploaded_by_idx on public.gallery(uploaded_by);
+create index if not exists match_events_assist_idx on public.match_events(assist_id);
+create index if not exists match_events_player_idx on public.match_events(player_id);
+create index if not exists match_events_team_idx on public.match_events(team_id);
+create index if not exists matches_home_team_idx on public.matches(home_team_id);
+create index if not exists matches_away_team_idx on public.matches(away_team_id);
+create index if not exists messages_user_idx on public.messages(user_id);
+create index if not exists news_author_idx on public.news(author_id);
+create index if not exists post_comments_user_idx on public.post_comments(user_id);
+create index if not exists post_likes_user_idx on public.post_likes(user_id);
+create index if not exists posts_user_idx on public.posts(user_id);
+create index if not exists push_subscriptions_user_idx on public.push_subscriptions(user_id);
+
+-- Fan-game individual predictions are private. Public clients may only read
+-- aggregate directional percentages and an anonymized leaderboard.
+drop policy if exists fan_pred_read on public.fan_predictions;
+create policy fan_pred_read on public.fan_predictions for select
+  using (user_id = (select auth.uid()) or (select public.is_admin()));
+
+create or replace view public.fan_prediction_distribution with (security_invoker = false) as
+select p.match_id, count(*)::int as total,
+       sum(case when p.home_pred > p.away_pred then 1 else 0 end)::int as home_wins,
+       sum(case when p.home_pred = p.away_pred then 1 else 0 end)::int as draws,
+       sum(case when p.home_pred < p.away_pred then 1 else 0 end)::int as away_wins
+from public.fan_predictions p group by p.match_id;
+
+create or replace view public.fan_leaderboard with (security_invoker = false) as
+with scored as (
+  select p.user_id, m.season_id,
+    case when m.status = 'finished' then
+      (case when sign(p.home_pred - p.away_pred) = sign(m.home_score - m.away_score) then 3 else 0 end
+       + case when p.home_pred = m.home_score and p.away_pred = m.away_score then 2 else 0 end) end as points,
+    case when m.status = 'finished' and p.home_pred = m.home_score and p.away_pred = m.away_score then 1 else 0 end as exact_hit
+  from public.fan_predictions p join public.matches m on m.id = p.match_id
+  join public.seasons s on s.id = m.season_id and s.is_active
+)
+select pr.id as user_id, pr.username, pr.display_name,
+       coalesce(sum(sc.points), 0)::int as points,
+       coalesce(sum(sc.exact_hit), 0)::int as exact_hits,
+       count(sc.user_id)::int as predictions
+from public.profiles pr join scored sc on sc.user_id = pr.id
+group by pr.id, pr.username, pr.display_name;
+
+grant select on public.fan_prediction_distribution, public.fan_leaderboard to anon, authenticated;
