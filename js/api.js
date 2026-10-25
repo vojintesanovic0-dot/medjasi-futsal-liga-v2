@@ -33,7 +33,7 @@ export const getOpenMatches = (seasonId) => unwrap(sb.from('matches').select(MAT
 export const getMyPredictions = (userId) => unwrap(sb.from('fan_predictions')
   .select('*').eq('user_id', userId));
 export const getAllPredictionsForMatches = (matchIds) => matchIds.length
-  ? unwrap(sb.from('fan_predictions').select('match_id, home_pred, away_pred').in('match_id', matchIds))
+  ? unwrap(sb.from('fan_prediction_distribution').select('match_id, total, home_wins, draws, away_wins').in('match_id', matchIds))
   : Promise.resolve([]);
 export const getLeaderboard = () => unwrap(sb.from('fan_leaderboard').select('*')
   .order('points', { ascending: false }).order('exact_hits', { ascending: false }).limit(50));
