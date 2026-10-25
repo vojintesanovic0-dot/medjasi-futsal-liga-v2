@@ -4,7 +4,8 @@ Odvojeni projekat sajta lige. Novi frontend je povezan s novim Supabase projekto
 
 - **GitHub repo:** https://github.com/vojintesanovic0-dot/medjasi-futsal-liga-v2
 - **Supabase project:** https://supabase.com/dashboard/project/fmrypbvjaytecjinpsnp
-- **Target URL:** https://vojintesanovic0-dot.github.io/medjasi-futsal-liga-v2/
+- **Live site:** https://vojintesanovic0-dot.github.io/medjasi-futsal-liga-v2/
+- **Latest successful deployment:** https://github.com/vojintesanovic0-dot/medjasi-futsal-liga-v2/actions/runs/40186542162
 
 ## Status
 
@@ -12,12 +13,12 @@ Odvojeni projekat sajta lige. Novi frontend je povezan s novim Supabase projekto
 - RLS je uključen na svih 14 glavnih tabela.
 - Frontend `js/config.js` je povezan s URL-om i javnim `sb_publishable_` ključem novog projekta.
 - GitHub Actions validacija prolazi.
-- **GitHub Pages još nije aktiviran:** automatizacija nema GitHub dozvolu da prvi put uključi Pages stranicu. Jednokratno uključi Pages u repo podešavanjima (koraci ispod). Nakon toga workflow automatski objavljuje stranicu.
+- **GitHub Pages je aktiviran i deployment je uspješno završen** (commit `6e7a1e978dcdb15e5283ef04227e4eaf022b1052`).
 - Edge Function `send-push` je deploy-ovana u Supabase, ali push slanje nije spremno za produkciju dok se ne podese VAPID ključevi kao Supabase secrets; privatni ključ se ne stavlja u frontend ili repozitorij.
 
-## 1. Jednokratno uključi GitHub Pages
+## 1. GitHub Pages — objavljeno
 
-Otvori [Settings → Pages](https://github.com/vojintesanovic0-dot/medjasi-futsal-liga-v2/settings/pages), pa u sekciji **Build and deployment** postavi **Source: GitHub Actions**. Sačuvaj ako se dugme Save prikaže. To omogućava workflow-u `.github/workflows/pages.yml` da objavi sajt na target URL-u iznad.
+GitHub Actions potvrđuje uspješan deployment. Stranica je na https://vojintesanovic0-dot.github.io/medjasi-futsal-liga-v2/ . Za kasnije izmjene dovoljno je poslati commit na `main`; workflow automatski ponavlja provjeru i objavu.
 
 ## 2. Supabase
 
