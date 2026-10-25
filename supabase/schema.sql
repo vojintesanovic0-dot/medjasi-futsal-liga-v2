@@ -1,0 +1,568 @@
+-- =====================================================================
+-- MEĐASI FUTSAL LIGA v2 — kompletna šema.
+-- Pokrenuti jednom u novom Supabase projektu (SQL Editor), cijelo odjednom.
+-- Idempotentno je koliko je moguće (drop/create za politike i triggere).
+-- =====================================================================
+
+create extension if not exists pgcrypto;
+
+-- ---------- Helper funkcije (plpgsql: tijelo se ne validira pri kreiranju) ----------
+create or replace function public.current_role_name()
+returns text language plpgsql stable security definer set search_path = public, pg_temp as $$
+begin
+  return coalesce((select p.role from public.profiles p where p.id = auth.uid()), 'anon');
+end $$;
+
+create or replace function public.is_admin()
+returns boolean language plpgsql stable security definer set search_path = public, pg_temp as $$
+begin
+  return public.current_role_name() = 'admin';
+end $$;
+
+create or replace function public.is_staff()   -- admin ili urednik sadržaja
+returns boolean language plpgsql stable security definer set search_path = public, pg_temp as $$
+begin
+  return public.current_role_name() in ('admin','editor');
+end $$;
+
+-- ---------- Profili ----------
+create table if not exists public.profiles (
+  id          uuid primary key references auth.users(id) on delete cascade,
+  username    text unique not null
+              check (username ~ '^[a-z0-9_]{3,20}$'),
+  display_name text,
+  avatar_url  text,
+  bio         text check (bio is null or char_length(bio) <= 280),
+  role        text not null default 'user' check (role in ('user','editor','admin')),
+  created_at  timestamptz not null default now()
+);
+
+-- Automatski profil pri registraciji (username iz metapodataka ili rezervni)
+create or replace function public.handle_new_user()
+returns trigger language plpgsql security definer set search_path = public, pg_temp as $$
+declare
+  base text;
+  candidate text;
+  n int := 0;
+begin
+  base := regexp_replace(
+            lower(coalesce(new.raw_user_meta_data->>'username', split_part(new.email,'@',1), 'user')),
+            '[^a-z0-9_]', '', 'g');
+  if char_length(base) < 3 then base := 'igrac'; end if;
+  base := left(base, 16);
+  candidate := base;
+  while exists (select 1 from public.profiles where username = candidate) loop
+    n := n + 1;
+    candidate := left(base, 16) || n::text;
+  end loop;
+  insert into public.profiles (id, username, display_name)
+  values (new.id, candidate, coalesce(new.raw_user_meta_data->>'display_name', candidate));
+  return new;
+end $$;
+
+drop trigger if exists on_auth_user_created on auth.users;
+create trigger on_auth_user_created after insert on auth.users
+  for each row execute function public.handle_new_user();
+
+-- Korisnik ne smije sam sebi mijenjati ulogu
+create or replace function public.guard_profile_role()
+returns trigger language plpgsql security definer set search_path = public, pg_temp as $$
+begin
+  if new.role is distinct from old.role and auth.uid() is not null and not public.is_admin() then
+    raise exception 'Nemaš pravo da mijenjaš ulogu.';
+  end if;
+  return new;
+end $$;
+
+drop trigger if exists trg_guard_profile_role on public.profiles;
+create trigger trg_guard_profile_role before update on public.profiles
+  for each row execute function public.guard_profile_role();
+
+-- ---------- Sezone ----------
+create table if not exists public.seasons (
+  id        serial primary key,
+  name      text not null,
+  is_active boolean not null default false,
+  created_at timestamptz not null default now()
+);
+create unique index if not exists one_active_season on public.seasons (is_active) where is_active;
+
+-- ---------- Ekipe, igrači ----------
+create table if not exists public.teams (
+  id          uuid primary key default gen_random_uuid(),
+  season_id   int references public.seasons(id) on delete cascade,
+  name        text not null,
+  short_name  text,
+  logo_url    text,
+  color       text default '#f5b400',
+  created_at  timestamptz not null default now(),
+  unique (season_id, name)
+);
+
+create table if not exists public.players (
+  id          uuid primary key default gen_random_uuid(),
+  team_id     uuid not null references public.teams(id) on delete cascade,
+  first_name  text not null,
+  last_name   text not null,
+  number      int check (number between 0 and 99),
+  position    text check (position in ('golman','odbrana','vezni','napad')),
+  photo_url   text,
+  is_captain  boolean not null default false,
+  created_at  timestamptz not null default now(),
+  unique (team_id, number)
+);
+
+-- ---------- Utakmice ----------
+create table if not exists public.matches (
+  id              uuid primary key default gen_random_uuid(),
+  season_id       int not null references public.seasons(id) on delete cascade,
+  round           int not null default 1,
+  home_team_id    uuid not null references public.teams(id) on delete cascade,
+  away_team_id    uuid not null references public.teams(id) on delete cascade,
+  scheduled_at    timestamptz not null,
+  venue           text,
+  status          text not null default 'scheduled'
+                  check (status in ('scheduled','live','paused','finished')),
+  periods         int not null default 2 check (periods between 1 and 4),
+  period_minutes  int not null default 20 check (period_minutes between 1 and 60),
+  current_period  int not null default 1,
+  -- Sat: vrijednost u trenutku zadnje promjene + vrijeme kad je krenuo
+  clock_seconds   int not null default 0,
+  clock_started_at timestamptz,
+  home_score      int not null default 0,
+  away_score      int not null default 0,
+  created_at      timestamptz not null default now(),
+  check (home_team_id <> away_team_id)
+);
+create index if not exists matches_season_idx on public.matches (season_id, scheduled_at);
+
+-- Događaji: golovi, vlastiti golovi, kartoni
+create table if not exists public.match_events (
+  id          uuid primary key default gen_random_uuid(),
+  match_id    uuid not null references public.matches(id) on delete cascade,
+  team_id     uuid not null references public.teams(id) on delete cascade, -- ekipa igrača (kod own_goal: ekipa koja je primila gol u svoju mrežu)
+  player_id   uuid references public.players(id) on delete set null,
+  assist_id   uuid references public.players(id) on delete set null,
+  type        text not null check (type in ('goal','own_goal','yellow','red')),
+  minute      int not null default 0 check (minute between 0 and 200),
+  created_at  timestamptz not null default now()
+);
+create index if not exists match_events_match_idx on public.match_events (match_id);
+
+-- Rezultat se uvijek računa iz događaja (ne može se ručno pokvariti)
+create or replace function public.recalc_match_score()
+returns trigger language plpgsql security definer set search_path = public, pg_temp as $$
+declare
+  mid uuid := coalesce(new.match_id, old.match_id);
+begin
+  -- goal: računa se ekipi igrača; own_goal: igrač je iz ekipe team_id, a gol se računa PROTIVNIKU
+  update public.matches m set
+    home_score = (select count(*) from public.match_events e where e.match_id = m.id and
+                    ((e.type = 'goal' and e.team_id = m.home_team_id) or
+                     (e.type = 'own_goal' and e.team_id = m.away_team_id))),
+    away_score = (select count(*) from public.match_events e where e.match_id = m.id and
+                    ((e.type = 'goal' and e.team_id = m.away_team_id) or
+                     (e.type = 'own_goal' and e.team_id = m.home_team_id)))
+  where m.id = mid;
+  return null;
+end $$;
+
+drop trigger if exists trg_recalc_score on public.match_events;
+create trigger trg_recalc_score after insert or update or delete on public.match_events
+  for each row execute function public.recalc_match_score();
+
+-- Provjera: strijelac i asistent moraju biti iz ekipe koja je u tom događaju
+create or replace function public.validate_match_event()
+returns trigger language plpgsql set search_path = public, pg_temp as $$
+begin
+  if new.player_id is not null and not exists (
+       select 1 from public.players p where p.id = new.player_id and p.team_id = new.team_id) then
+    raise exception 'Igrač ne pripada ekipi koja je označena u događaju.';
+  end if;
+  if new.assist_id is not null and not exists (
+       select 1 from public.players p where p.id = new.assist_id and p.team_id = new.team_id) then
+    raise exception 'Asistent ne pripada ekipi koja je označena u događaju.';
+  end if;
+  if new.team_id not in (select home_team_id from public.matches where id = new.match_id union
+                         select away_team_id from public.matches where id = new.match_id) then
+    raise exception 'Ekipa ne igra u ovoj utakmici.';
+  end if;
+  return new;
+end $$;
+
+drop trigger if exists trg_validate_match_event on public.match_events;
+create trigger trg_validate_match_event before insert or update on public.match_events
+  for each row execute function public.validate_match_event();
+
+-- ---------- Vijesti ----------
+create table if not exists public.news (
+  id          uuid primary key default gen_random_uuid(),
+  title       text not null check (char_length(title) between 3 and 160),
+  slug        text unique not null,
+  excerpt     text,
+  body        text not null default '',
+  cover_url   text,
+  published   boolean not null default false,
+  author_id   uuid references public.profiles(id) on delete set null,
+  published_at timestamptz,
+  created_at  timestamptz not null default now(),
+  updated_at  timestamptz not null default now()
+);
+
+-- ---------- Galerija ----------
+create table if not exists public.gallery (
+  id          uuid primary key default gen_random_uuid(),
+  title       text,
+  media_url   text not null,
+  media_type  text not null default 'image' check (media_type in ('image','video')),
+  uploaded_by uuid references public.profiles(id) on delete set null,
+  created_at  timestamptz not null default now()
+);
+
+-- ---------- Chat ----------
+create table if not exists public.messages (
+  id         uuid primary key default gen_random_uuid(),
+  user_id    uuid not null references public.profiles(id) on delete cascade,
+  username   text not null,
+  content    text not null check (char_length(content) between 1 and 500),
+  created_at timestamptz not null default now()
+);
+create index if not exists messages_created_idx on public.messages (created_at desc);
+
+-- Ime u poruci uvijek dolazi iz profila (ne može se lažirati) + spam zaštita
+create or replace function public.stamp_message()
+returns trigger language plpgsql security definer set search_path = public, pg_temp as $$
+declare
+  uname text;
+begin
+  select username into uname from public.profiles where id = new.user_id;
+  new.username := coalesce(uname, 'korisnik');
+  if exists (select 1 from public.messages
+             where user_id = new.user_id and created_at > now() - interval '2 seconds') then
+    raise exception 'Malo sporije, pošalji poruku za trenutak.';
+  end if;
+  return new;
+end $$;
+
+drop trigger if exists trg_stamp_message on public.messages;
+create trigger trg_stamp_message before insert on public.messages
+  for each row execute function public.stamp_message();
+
+-- ---------- Tabela (standings) ----------
+create or replace view public.standings with (security_invoker = true) as
+with active as (select id from public.seasons where is_active),
+finished as (
+  select m.* from public.matches m where m.status = 'finished'
+    and m.season_id in (select id from active)
+),
+rows_ as (
+  select home_team_id as team_id, home_score as gf, away_score as ga,
+         case when home_score > away_score then 3 when home_score = away_score then 1 else 0 end as pts,
+         case when home_score > away_score then 1 else 0 end as w,
+         case when home_score = away_score then 1 else 0 end as d,
+         case when home_score < away_score then 1 else 0 end as l
+  from finished
+  union all
+  select away_team_id, away_score, home_score,
+         case when away_score > home_score then 3 when away_score = home_score then 1 else 0 end,
+         case when away_score > home_score then 1 else 0 end,
+         case when away_score = home_score then 1 else 0 end,
+         case when away_score < home_score then 1 else 0 end
+  from finished
+)
+select t.id as team_id, t.name, t.short_name, t.logo_url, t.color,
+       count(r.team_id)::int          as played,
+       coalesce(sum(r.w),0)::int      as won,
+       coalesce(sum(r.d),0)::int      as drawn,
+       coalesce(sum(r.l),0)::int      as lost,
+       coalesce(sum(r.gf),0)::int     as goals_for,
+       coalesce(sum(r.ga),0)::int     as goals_against,
+       (coalesce(sum(r.gf),0) - coalesce(sum(r.ga),0))::int as goal_diff,
+       coalesce(sum(r.pts),0)::int    as points
+from public.teams t
+left join rows_ r on r.team_id = t.id
+where t.season_id in (select id from active)
+group by t.id, t.name, t.short_name, t.logo_url, t.color;
+
+-- ---------- RLS ----------
+alter table public.profiles      enable row level security;
+alter table public.seasons       enable row level security;
+alter table public.teams         enable row level security;
+alter table public.players       enable row level security;
+alter table public.matches       enable row level security;
+alter table public.match_events  enable row level security;
+alter table public.news          enable row level security;
+alter table public.gallery       enable row level security;
+alter table public.messages      enable row level security;
+
+-- Profili: javno čitanje, korisnik mijenja samo svoj
+drop policy if exists profiles_read on public.profiles;
+create policy profiles_read on public.profiles for select using (true);
+drop policy if exists profiles_update_own on public.profiles;
+create policy profiles_update_own on public.profiles for update to authenticated
+  using (id = auth.uid()) with check (id = auth.uid());
+drop policy if exists profiles_admin_all on public.profiles;
+create policy profiles_admin_all on public.profiles for all to authenticated
+  using (public.is_admin()) with check (public.is_admin());
+
+-- Javni sportski podaci: svi čitaju, samo admin piše
+do $$
+declare t text;
+begin
+  foreach t in array array['seasons','teams','players','matches','match_events'] loop
+    execute format('drop policy if exists %I on public.%I', t||'_read', t);
+    execute format('create policy %I on public.%I for select using (true)', t||'_read', t);
+    execute format('drop policy if exists %I on public.%I', t||'_admin_write', t);
+    execute format('create policy %I on public.%I for all to authenticated using (public.is_admin()) with check (public.is_admin())', t||'_admin_write', t);
+  end loop;
+end $$;
+
+-- Vijesti: javno samo objavljene; urednik i admin vide i piše sve
+drop policy if exists news_read_published on public.news;
+create policy news_read_published on public.news for select using (published or public.is_staff());
+drop policy if exists news_staff_write on public.news;
+create policy news_staff_write on public.news for all to authenticated
+  using (public.is_staff()) with check (public.is_staff());
+
+-- Galerija: javno čitanje, urednik i admin dodaju/brišu
+drop policy if exists gallery_read on public.gallery;
+create policy gallery_read on public.gallery for select using (true);
+drop policy if exists gallery_staff_write on public.gallery;
+create policy gallery_staff_write on public.gallery for all to authenticated
+  using (public.is_staff()) with check (public.is_staff());
+
+-- Chat: svi čitaju, prijavljeni šalju kao sebe, brišu svoje (admin sve)
+drop policy if exists messages_read on public.messages;
+create policy messages_read on public.messages for select using (true);
+drop policy if exists messages_insert_own on public.messages;
+create policy messages_insert_own on public.messages for insert to authenticated
+  with check (user_id = auth.uid());
+drop policy if exists messages_delete on public.messages;
+create policy messages_delete on public.messages for delete to authenticated
+  using (user_id = auth.uid() or public.is_admin());
+
+-- ---------- Realtime (uživo utakmice, chat, vijesti) ----------
+do $$
+declare t text;
+begin
+  foreach t in array array['matches','match_events','messages','news'] loop
+    if not exists (select 1 from pg_publication_tables
+                   where pubname = 'supabase_realtime' and tablename = t) then
+      execute format('alter publication supabase_realtime add table public.%I', t);
+    end if;
+  end loop;
+end $$;
+
+-- ---------- Privilegije ----------
+revoke all on all tables in schema public from anon, authenticated;
+grant select on public.seasons, public.teams, public.players, public.matches,
+  public.match_events, public.news, public.gallery, public.messages, public.profiles,
+  public.standings to anon, authenticated;
+grant insert, update, delete on public.seasons, public.teams, public.players, public.matches,
+  public.match_events, public.news, public.gallery, public.profiles to authenticated;
+grant insert, delete on public.messages to authenticated;
+grant usage, select on all sequences in schema public to authenticated;
+grant execute on function public.is_admin(), public.is_staff(), public.current_role_name() to anon, authenticated;
+
+-- =====================================================================
+-- FAN GAME: navijači pogađaju rezultat prije početka utakmice
+-- Bodovi: tačan ishod (1/X/2) = 3, tačan rezultat = +2 (ukupno 5)
+-- =====================================================================
+create table if not exists public.fan_predictions (
+  id          uuid primary key default gen_random_uuid(),
+  user_id     uuid not null references public.profiles(id) on delete cascade,
+  match_id    uuid not null references public.matches(id) on delete cascade,
+  home_pred   int not null check (home_pred between 0 and 30),
+  away_pred   int not null check (away_pred between 0 and 30),
+  created_at  timestamptz not null default now(),
+  updated_at  timestamptz not null default now(),
+  unique (user_id, match_id)
+);
+
+-- Bodovi po pogađanju (računa se tek kad je utakmica završena)
+create or replace view public.fan_points with (security_invoker = true) as
+select p.id, p.user_id, p.match_id, m.season_id,
+  case when m.status = 'finished' then
+    (case when sign(p.home_pred - p.away_pred) = sign(m.home_score - m.away_score) then 3 else 0 end
+     + case when p.home_pred = m.home_score and p.away_pred = m.away_score then 2 else 0 end)
+  end as points,
+  case when m.status = 'finished'
+        and p.home_pred = m.home_score and p.away_pred = m.away_score then 1 else 0 end as exact_hit
+from public.fan_predictions p
+join public.matches m on m.id = p.match_id;
+
+-- Rang lista za aktivnu sezonu
+create or replace view public.fan_leaderboard with (security_invoker = true) as
+select pr.id as user_id, pr.username, pr.display_name,
+       coalesce(sum(fp.points), 0)::int   as points,
+       coalesce(sum(fp.exact_hit), 0)::int as exact_hits,
+       count(fp.id)::int                  as predictions
+from public.profiles pr
+join public.fan_points fp on fp.user_id = pr.id
+join public.seasons s on s.id = fp.season_id and s.is_active
+group by pr.id, pr.username, pr.display_name;
+
+-- Pogađanje je dozvoljeno samo dok utakmica nije počela
+alter table public.fan_predictions enable row level security;
+drop policy if exists fan_pred_read on public.fan_predictions;
+create policy fan_pred_read on public.fan_predictions for select using (true);
+drop policy if exists fan_pred_insert on public.fan_predictions;
+create policy fan_pred_insert on public.fan_predictions for insert to authenticated
+  with check (user_id = auth.uid() and exists (
+    select 1 from public.matches m where m.id = match_id
+      and m.status = 'scheduled' and m.scheduled_at > now()));
+drop policy if exists fan_pred_update on public.fan_predictions;
+create policy fan_pred_update on public.fan_predictions for update to authenticated
+  using (user_id = auth.uid() and exists (
+    select 1 from public.matches m where m.id = match_id
+      and m.status = 'scheduled' and m.scheduled_at > now()))
+  with check (user_id = auth.uid());
+drop policy if exists fan_pred_delete on public.fan_predictions;
+create policy fan_pred_delete on public.fan_predictions for delete to authenticated
+  using (user_id = auth.uid() or public.is_admin());
+
+-- =====================================================================
+-- ZAJEDNICA: objave, komentari, lajkovi
+-- =====================================================================
+create table if not exists public.posts (
+  id          uuid primary key default gen_random_uuid(),
+  user_id     uuid not null references public.profiles(id) on delete cascade,
+  content     text not null check (char_length(content) between 1 and 1000),
+  image_url   text,
+  created_at  timestamptz not null default now()
+);
+create index if not exists posts_created_idx on public.posts (created_at desc);
+
+create table if not exists public.post_comments (
+  id          uuid primary key default gen_random_uuid(),
+  post_id     uuid not null references public.posts(id) on delete cascade,
+  user_id     uuid not null references public.profiles(id) on delete cascade,
+  username    text not null,
+  content     text not null check (char_length(content) between 1 and 500),
+  created_at  timestamptz not null default now()
+);
+create index if not exists post_comments_post_idx on public.post_comments (post_id, created_at);
+
+create table if not exists public.post_likes (
+  post_id     uuid not null references public.posts(id) on delete cascade,
+  user_id     uuid not null references public.profiles(id) on delete cascade,
+  created_at  timestamptz not null default now(),
+  primary key (post_id, user_id)
+);
+
+-- Ime u komentaru uvijek iz profila (kao kod chata)
+create or replace function public.stamp_comment()
+returns trigger language plpgsql security definer set search_path = public, pg_temp as $$
+declare uname text;
+begin
+  select username into uname from public.profiles where id = new.user_id;
+  new.username := coalesce(uname, 'korisnik');
+  return new;
+end $$;
+
+drop trigger if exists trg_stamp_comment on public.post_comments;
+create trigger trg_stamp_comment before insert on public.post_comments
+  for each row execute function public.stamp_comment();
+
+-- Feed s brojačima (lajkovi, komentari) i autorom
+create or replace view public.post_feed with (security_invoker = true) as
+select p.id, p.user_id, p.content, p.image_url, p.created_at,
+       pr.username, pr.display_name, pr.avatar_url,
+       (select count(*) from public.post_likes l where l.post_id = p.id)::int    as likes,
+       (select count(*) from public.post_comments c where c.post_id = p.id)::int as comments
+from public.posts p
+join public.profiles pr on pr.id = p.user_id;
+
+alter table public.posts         enable row level security;
+alter table public.post_comments enable row level security;
+alter table public.post_likes    enable row level security;
+
+drop policy if exists posts_read on public.posts;
+create policy posts_read on public.posts for select using (true);
+drop policy if exists posts_insert_own on public.posts;
+create policy posts_insert_own on public.posts for insert to authenticated
+  with check (user_id = auth.uid());
+drop policy if exists posts_delete on public.posts;
+create policy posts_delete on public.posts for delete to authenticated
+  using (user_id = auth.uid() or public.is_staff());
+
+drop policy if exists comments_read on public.post_comments;
+create policy comments_read on public.post_comments for select using (true);
+drop policy if exists comments_insert_own on public.post_comments;
+create policy comments_insert_own on public.post_comments for insert to authenticated
+  with check (user_id = auth.uid());
+drop policy if exists comments_delete on public.post_comments;
+create policy comments_delete on public.post_comments for delete to authenticated
+  using (user_id = auth.uid() or public.is_staff());
+
+drop policy if exists likes_read on public.post_likes;
+create policy likes_read on public.post_likes for select using (true);
+drop policy if exists likes_insert_own on public.post_likes;
+create policy likes_insert_own on public.post_likes for insert to authenticated
+  with check (user_id = auth.uid());
+drop policy if exists likes_delete_own on public.post_likes;
+create policy likes_delete_own on public.post_likes for delete to authenticated
+  using (user_id = auth.uid());
+
+-- =====================================================================
+-- MEDIJI: Storage bucket "media" (galerija, vijesti, slike u objavama)
+-- Staff (admin/urednik) upload u bilo koji folder; korisnici samo u posts/<svoj-uid>/
+-- =====================================================================
+insert into storage.buckets (id, name, public, file_size_limit, allowed_mime_types)
+values ('media', 'media', true, 15728640,
+        array['image/jpeg','image/png','image/webp','image/gif','video/mp4','video/webm'])
+on conflict (id) do update set public = excluded.public,
+  file_size_limit = excluded.file_size_limit, allowed_mime_types = excluded.allowed_mime_types;
+
+drop policy if exists media_read on storage.objects;
+create policy media_read on storage.objects for select using (bucket_id = 'media');
+
+drop policy if exists media_insert on storage.objects;
+create policy media_insert on storage.objects for insert to authenticated with check (
+  bucket_id = 'media' and (
+    public.is_staff()
+    or ((storage.foldername(name))[1] = 'posts' and (storage.foldername(name))[2] = auth.uid()::text)
+  ));
+
+drop policy if exists media_delete on storage.objects;
+create policy media_delete on storage.objects for delete to authenticated using (
+  bucket_id = 'media' and (public.is_staff() or owner = auth.uid()));
+
+-- =====================================================================
+-- PUSH OBAVJEŠTENJA: pretplate (čita ih samo server, Edge Function send-push)
+-- =====================================================================
+create table if not exists public.push_subscriptions (
+  id          uuid primary key default gen_random_uuid(),
+  user_id     uuid not null references public.profiles(id) on delete cascade,
+  endpoint    text unique not null,
+  p256dh      text not null,
+  auth        text not null,
+  created_at  timestamptz not null default now()
+);
+alter table public.push_subscriptions enable row level security;
+drop policy if exists push_own on public.push_subscriptions;
+create policy push_own on public.push_subscriptions for all to authenticated
+  using (user_id = auth.uid()) with check (user_id = auth.uid());
+
+-- Realtime za objave i komentare
+do $$
+declare t text;
+begin
+  foreach t in array array['posts','post_comments','post_likes','fan_predictions'] loop
+    if not exists (select 1 from pg_publication_tables
+                   where pubname = 'supabase_realtime' and tablename = t) then
+      execute format('alter publication supabase_realtime add table public.%I', t);
+    end if;
+  end loop;
+end $$;
+
+-- Privilegije za nove objekte
+grant select on public.fan_predictions, public.posts, public.post_comments, public.post_likes,
+  public.fan_points, public.fan_leaderboard, public.post_feed to anon, authenticated;
+grant insert, update, delete on public.fan_predictions to authenticated;
+grant insert, delete on public.posts, public.post_comments, public.post_likes to authenticated;
+grant select, insert, update, delete on public.push_subscriptions to authenticated;
+
+-- ---------- Prvi admin ----------
+-- Nakon što se registruješ na sajtu, u SQL Editoru pokreni (zamijeni username):
+--   update public.profiles set role = 'admin' where username = 'tvoj_username';
