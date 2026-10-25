@@ -61,4 +61,4 @@ if (fail.length) {
   console.error(fail.join('\n\n'));
   process.exit(1);
 }
-console.log(`Site validation passed. Checked ${sourceFiles.filter((f) => /\\.(?:js|mjs|cjs)$/.test(f)).length} JavaScript files, imports, HTML assets, PWA icons, and required SQL tables.`);
+console.log(`Site validation passed. Checked ${sourceFiles.filter((f) => /\.(?:js|mjs|cjs)$/.test(f)).length} JavaScript files, imports, HTML assets, PWA icons, and required SQL tables.`);
