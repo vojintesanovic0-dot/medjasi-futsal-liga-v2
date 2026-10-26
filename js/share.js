@@ -3,7 +3,7 @@ import { LEAGUE_NAME } from './config.js';
 import { STATUS_LABEL } from './util.js';
 
 const W = 1080, H = 1080;
-const safeHex = (c) => (/^#[0-9a-f]{6}$/i.test(c || '') ? c : '#f5b400');
+const safeHex = (c) => (/^#[0-9a-f]{6}$/i.test(c || '') ? c : '#22c55e');
 
 function drawTeam(ctx, team, cx, cy) {
   const color = safeHex(team?.color);
@@ -27,9 +27,9 @@ export function renderMatchCanvas(m) {
   const g = ctx.createLinearGradient(0, 0, W, H);
   g.addColorStop(0, '#0b0d12'); g.addColorStop(1, '#1c2230');
   ctx.fillStyle = g; ctx.fillRect(0, 0, W, H);
-  ctx.fillStyle = '#f5b400'; ctx.fillRect(0, 0, W, 14);
+  ctx.fillStyle = '#22c55e'; ctx.fillRect(0, 0, W, 14);
   ctx.textAlign = 'center'; ctx.textBaseline = 'middle';
-  ctx.fillStyle = '#f5b400';
+  ctx.fillStyle = '#22c55e';
   ctx.font = '800 44px system-ui, Arial, sans-serif';
   ctx.fillText(LEAGUE_NAME.toUpperCase(), W / 2, 110);
   ctx.fillStyle = '#9aa3b5';
@@ -85,5 +85,21 @@ export function matchIcsUrl(m) {
     `DESCRIPTION:${icsText(`${LEAGUE_NAME} · ${m.round}. kolo`)}`,
     'END:VEVENT', 'END:VCALENDAR',
   ];
+  return URL.createObjectURL(new Blob([lines.join('\r\n')], { type: 'text/calendar;charset=utf-8' }));
+}
+
+export function seasonIcsUrl(matches, seasonName = '') {
+  const events = matches.filter((m) => m?.scheduled_at && m?.id).flatMap((m) => {
+    const start = new Date(m.scheduled_at);
+    if (Number.isNaN(start.getTime())) return [];
+    const end = new Date(start.getTime() + 90 * 60000);
+    return ['BEGIN:VEVENT', `UID:${m.id}@medjasi-liga`, `DTSTAMP:${icsDate(new Date().toISOString())}`,
+      `DTSTART:${icsDate(start.toISOString())}`, `DTEND:${icsDate(end.toISOString())}`,
+      `SUMMARY:${icsText(`${m.home?.name || 'Domaćin'} – ${m.away?.name || 'Gost'}`)}`,
+      `LOCATION:${icsText(m.venue || '')}`,
+      `DESCRIPTION:${icsText(`${LEAGUE_NAME} · ${m.round}. kolo`)}`, 'END:VEVENT'];
+  });
+  const lines = ['BEGIN:VCALENDAR', 'VERSION:2.0', 'PRODID:-//Medjasi Futsal Liga//HR', 'CALSCALE:GREGORIAN',
+    `X-WR-CALNAME:${icsText(`${LEAGUE_NAME} ${seasonName}`.trim())}`, ...events, 'END:VCALENDAR'];
   return URL.createObjectURL(new Blob([lines.join('\r\n')], { type: 'text/calendar;charset=utf-8' }));
 }

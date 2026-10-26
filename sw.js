@@ -1,6 +1,6 @@
 // Service worker: offline ljuska (network-first) + web push obavještenja.
-const CACHE = 'medjasi-v2-cache-v1';
-const SHELL = ['./', 'index.html', 'css/style.css', 'js/app.js', 'manifest.json'];
+const CACHE = 'medjasi-v2-cache-v2';
+const SHELL = ['./', 'index.html', 'privatnost.html', 'css/style.css', 'js/app.js', 'js/pages/stats.js', 'manifest.json'];
 
 self.addEventListener('install', (e) => {
   e.waitUntil(caches.open(CACHE).then((c) => c.addAll(SHELL)).then(() => self.skipWaiting()));
