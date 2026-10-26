@@ -96,3 +96,21 @@ Naslovna slika vijesti se unosi kao URL u admin panelu; upload slike direktno s 
 1. U Supabase Authentication → URL Configuration postavi Site URL na `https://vojintesanovic0-dot.github.io/medjasi-futsal-liga-v2/` i dodaj Redirect URL `https://vojintesanovic0-dot.github.io/medjasi-futsal-liga-v2/**`. Ovo je potrebno da reset lozinke vrati korisnika na ispravnu rutu.
 2. U `privatnost.html` obavezno zamijeni sve vrijednosti u uglastim zagradama (kontakt, organizator, pravni osnov i starosna granica) i provjeri tekst prije konačne objave.
 3. Statistika čita view `public.player_stats`; za postojeću bazu primjenjuje se migracija `supabase/migrations/20261026_player_stats.sql`.
+
+
+## v5 — preostale funkcije
+
+- Administracija vijesti podržava naslovnu sliku s uređaja (do 10 MB) i zakazivanje po lokalnom datumu/vremenu.
+- Dodani su generator rasporeda, audit log, obrada prijava i upozorenja korisnicima.
+- Zajednica može prijaviti objavu ili komentar; Fan game prikazuje značke.
+- Detalj utakmice ima MVP glasanje i razgovor uživo, a tabela prikazuje formu posljednjih pet utakmica.
+- Dodani su pretraga, dinamički naslovi/opisi, Open Graph oznake, `sitemap.xml`, `robots.txt` i dodatne provjere u GitHub Actions.
+- Dodan je opciono pozivani `remind-predictions` Edge Function. Izvor je u repozitoriju i funkcija je deployovana, ali automatsko pokretanje podsjetnika nije uključeno dok se ne podese tajne i cron raspored.
+
+### Obavezna ručna podešavanja
+
+1. U Supabase → Authentication → Providers → Email uključi **Confirm email** ako želiš obaveznu potvrdu adrese.
+2. U Supabase → Authentication → URL Configuration postavi Site URL na `https://vojintesanovic0-dot.github.io/medjasi-futsal-liga-v2/`. Dodaj Redirect URL `https://vojintesanovic0-dot.github.io/medjasi-futsal-liga-v2/**` i po potrebi tačan reset URL `https://vojintesanovic0-dot.github.io/medjasi-futsal-liga-v2/#/nova-lozinka`.
+3. Za web push i podsjetnike podesi `VAPID_SUBJECT`, `VAPID_PUBLIC_KEY`, `VAPID_PRIVATE_KEY` i `CRON_SECRET` u Supabase Edge Function Secrets; javni VAPID ključ upiši u `js/config.js`. Nemoj commitovati vrijednosti tajni u GitHub.
+4. Tek nakon toga uključi `pg_cron` i `pg_net` te podesi siguran cron poziv ka `remind-predictions`. Dokumentacija Supabase preporučuje da se tajne za cron pozive čuvaju u Vault-u, a ne u SQL fajlu u repozitoriju.
+5. `privatnost.html` ostaje nacrt: zamijeni placeholder-e za kontakt, organizatora, pravni osnov i starosnu granicu. Sentry nije uključen jer zahtijeva tvoj Sentry projekat i DSN.
