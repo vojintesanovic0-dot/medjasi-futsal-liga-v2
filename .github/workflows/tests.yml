@@ -1,0 +1,60 @@
+name: tests
+on:
+  push:
+    branches: [main]
+  pull_request:
+    branches: [main]
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  test:
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    env:
+      PGPASSWORD: postgres
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+      - uses: actions/setup-python@v5
+        with:
+          python-version: '3.12'
+      - name: Install PostgreSQL client
+        run: |
+          sudo apt-get update
+          sudo apt-get install -y postgresql-client
+      - name: Start isolated PostgreSQL
+        run: |
+          docker run --detach --name medjasi-pg-test \
+            -e POSTGRES_PASSWORD=postgres \
+            -p 5432:5432 \
+            postgres:16 -c wal_level=logical
+          for attempt in $(seq 1 30); do
+            if docker exec medjasi-pg-test pg_isready -U postgres; then exit 0; fi
+            sleep 2
+          done
+          docker logs medjasi-pg-test
+          exit 1
+      - name: Validate syntax, imports, assets and schema
+        run: node scripts/validate-site.mjs
+      - name: Validate named JavaScript imports
+        run: python3 tests/check_imports.py
+      - name: Create isolated test database
+        run: psql -h localhost -U postgres -d postgres -v ON_ERROR_STOP=1 -c "CREATE DATABASE liga"
+      - name: Create minimal Supabase stubs
+        run: psql -h localhost -U postgres -d liga -v ON_ERROR_STOP=1 -f tests/sql/stubs.sql
+      - name: Apply complete schema
+        run: psql -h localhost -U postgres -d liga -v ON_ERROR_STOP=1 -f supabase/schema.sql
+      - name: Run core SQL tests
+        run: psql -h localhost -U postgres -d liga -v ON_ERROR_STOP=1 -f tests/sql/test.sql 2>&1 | tee out1.txt
+      - name: Run v5 SQL tests
+        run: psql -h localhost -U postgres -d liga -v ON_ERROR_STOP=1 -f tests/sql/test_v5.sql 2>&1 | tee out2.txt
+      - name: Confirm tests passed
+        run: |
+          ! grep -q "FAIL:" out1.txt out2.txt
+          grep -q "PASS:" out1.txt
+          grep -q "PASS:" out2.txt
