@@ -57,12 +57,6 @@ const sql = fs.readFileSync(path.join(root, 'supabase/schema.sql'), 'utf8');
 for (const table of ['profiles', 'seasons', 'teams', 'players', 'matches', 'match_events', 'news', 'gallery', 'messages', 'fan_predictions', 'posts', 'post_comments', 'post_likes', 'push_subscriptions', 'admin_audit', 'reports', 'user_warnings', 'mvp_votes', 'match_comments']) {
   if (!new RegExp(`create table if not exists public\\.${table}\\b`, 'i').test(sql)) fail.push(`SQL schema missing table declaration: ${table}`);
 }
-if (fail.length) {
-  console.error(fail.join('\n\n'));
-  process.exit(1);
-}
-console.log(`Site validation passed. Checked ${sourceFiles.filter((f) => /\.(?:js|mjs|cjs)$/.test(f)).length} JavaScript files, imports, HTML assets, PWA icons, and required SQL tables.`);
-
 const sitemapPath = path.join(root, 'sitemap.xml');
 const robotsPath = path.join(root, 'robots.txt');
 if (!fs.existsSync(sitemapPath)) fail.push('Missing sitemap.xml.');
@@ -74,3 +68,9 @@ if (fs.existsSync(sitemapPath)) {
 if (fs.existsSync(robotsPath) && !fs.readFileSync(robotsPath, 'utf8').includes('sitemap.xml')) {
   fail.push('robots.txt must include the sitemap URL.');
 }
+
+if (fail.length) {
+  console.error(fail.join('\n\n'));
+  process.exit(1);
+}
+console.log(`Site validation passed. Checked ${sourceFiles.filter((f) => /\.(?:js|mjs|cjs)$/.test(f)).length} JavaScript files, imports, HTML assets, PWA icons, and required SQL tables.`);
