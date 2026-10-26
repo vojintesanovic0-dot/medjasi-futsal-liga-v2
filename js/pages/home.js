@@ -1,11 +1,11 @@
-import { getActiveSeason, getStandings, getMatches, getPublishedNews } from '../api.js';
+import { getActiveSeason, getSeasons, getStandings, getMatches, getPublishedNews } from '../api.js';
 import { esc, fmtLong, fmtDateTime, empty } from '../util.js';
 import { matchCard, standingsTable, badge, scoreHtml } from '../components.js';
 
 export function registerHome(route) {
   route('/', async (ctx) => {
-    const season = await getActiveSeason();
-    if (!season) { ctx.app.innerHTML = empty('Još nema aktivne sezone.'); return; }
+    const season = await getActiveSeason() || (await getSeasons())[0] || null;
+    if (!season) { ctx.app.innerHTML = `<div class="home-dashboard"><section class="hero home-hero"><div class="home-hero-copy"><div class="home-kicker"><span class="home-kicker-mark" aria-hidden="true"></span><span>TAKMIČARSKI CENTAR</span></div><h1>Međasi <span>Futsal Liga</span></h1><p class="lead">Svaki rezultat. Svaka ekipa. Svaki trenutak lige — na jednom mjestu.</p><div class="hero-actions home-hero-actions"><a class="btn btn-primary home-primary-action" href="#/utakmice">Pogledaj utakmice <span aria-hidden="true">↗</span></a><a class="btn home-secondary-action" href="#/tabela">Pogledaj tabelu</a></div><div class="home-hero-foot"><span class="home-live-note">Sezona još nije kreirana ili aktivirana.</span></div></div><div class="home-visual"><div class="home-visual-grid" aria-hidden="true"></div><div class="home-pitch" aria-hidden="true"><span class="home-pitch-half"></span><span class="home-center-circle"></span><span class="home-pitch-spot"></span><span class="home-goal home-goal-left"></span><span class="home-goal home-goal-right"></span></div><div class="home-visual-orb" aria-hidden="true"><span>MF</span></div></div></section><section class="block home-block"><div class="block-head"><h2>Dobro došli</h2></div><p class="muted">Sadržaj lige će se prikazati čim administrator podesi sezonu. Ostali dijelovi sajta ostaju dostupni kroz meni.</p></section></div>`; return; }
     const [matches, table, news] = await Promise.all([
       getMatches(season.id), getStandings(), getPublishedNews(3),
     ]);
