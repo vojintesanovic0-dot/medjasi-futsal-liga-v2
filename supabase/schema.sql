@@ -1011,6 +1011,54 @@ begin
   end if;
 end $$;
 
+
+-- =====================================================================
+-- v6: rate limits for user-generated content
+-- =====================================================================
+create or replace function public.rate_limit_insert()
+returns trigger
+language plpgsql
+security definer
+set search_path = public, pg_temp
+as $$
+declare
+  secs int := tg_argv[0]::int;
+  col text := coalesce(tg_argv[1], 'user_id');
+  uid uuid := (to_jsonb(new) ->> col)::uuid;
+  hit boolean;
+begin
+  if secs < 1 then
+    raise exception 'Invalid rate-limit interval';
+  end if;
+  execute format(
+    'select exists (select 1 from %I.%I where %I = $1 and created_at > now() - make_interval(secs => $2))',
+    tg_table_schema, tg_table_name, col
+  ) into hit using uid, secs;
+  if hit then
+    raise exception 'Malo sporije, pokušaj ponovo za nekoliko sekundi.';
+  end if;
+  return new;
+end
+$$;
+
+drop trigger if exists trg_rate_posts on public.posts;
+create trigger trg_rate_posts before insert on public.posts
+  for each row execute function public.rate_limit_insert(30, 'user_id');
+
+drop trigger if exists trg_rate_comments on public.post_comments;
+create trigger trg_rate_comments before insert on public.post_comments
+  for each row execute function public.rate_limit_insert(5, 'user_id');
+
+drop trigger if exists trg_rate_match_comments on public.match_comments;
+create trigger trg_rate_match_comments before insert on public.match_comments
+  for each row execute function public.rate_limit_insert(5, 'user_id');
+
+drop trigger if exists trg_rate_reports on public.reports;
+create trigger trg_rate_reports before insert on public.reports
+  for each row execute function public.rate_limit_insert(10, 'reporter_id');
+
+revoke all on function public.rate_limit_insert() from public, anon, authenticated;
+
 -- These are trigger-only helpers; clients must not call them directly.
 revoke all on function public.audit_row() from public, anon, authenticated;
 revoke all on function public.validate_mvp_vote() from public, anon, authenticated;
