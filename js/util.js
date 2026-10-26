@@ -1,6 +1,6 @@
 const HTML_MAP = { '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' };
 export const esc = (s) => String(s ?? '').replace(/[&<>"']/g, (c) => HTML_MAP[c]);
-export const safeColor = (c) => (/^#[0-9a-f]{3,8}$/i.test(c || '') ? c : '#f5b400');
+export const safeColor = (c) => (/^#[0-9a-f]{3,8}$/i.test(c || '') ? c : '#22c55e');
 export const safeUrl = (u) => (/^https?:\/\//i.test(u || '') ? u : '');
 const fmtDate = (iso) => new Date(iso).toLocaleDateString('bs-BA', { weekday: 'short', day: '2-digit', month: 'short' });
 const fmtTime = (iso) => new Date(iso).toLocaleTimeString('bs-BA', { hour: '2-digit', minute: '2-digit' });
