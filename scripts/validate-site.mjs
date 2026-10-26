@@ -54,9 +54,21 @@ for (const ref of index.matchAll(/(?:src|href)="([^"]+)"/g)) {
   }
 }
 const sql = fs.readFileSync(path.join(root, 'supabase/schema.sql'), 'utf8');
-for (const table of ['profiles', 'seasons', 'teams', 'players', 'matches', 'match_events', 'news', 'gallery', 'messages', 'fan_predictions', 'posts', 'post_comments', 'post_likes', 'push_subscriptions']) {
+for (const table of ['profiles', 'seasons', 'teams', 'players', 'matches', 'match_events', 'news', 'gallery', 'messages', 'fan_predictions', 'posts', 'post_comments', 'post_likes', 'push_subscriptions', 'admin_audit', 'reports', 'user_warnings', 'mvp_votes', 'match_comments']) {
   if (!new RegExp(`create table if not exists public\\.${table}\\b`, 'i').test(sql)) fail.push(`SQL schema missing table declaration: ${table}`);
 }
+const sitemapPath = path.join(root, 'sitemap.xml');
+const robotsPath = path.join(root, 'robots.txt');
+if (!fs.existsSync(sitemapPath)) fail.push('Missing sitemap.xml.');
+if (!fs.existsSync(robotsPath)) fail.push('Missing robots.txt.');
+if (fs.existsSync(sitemapPath)) {
+  const sitemap = fs.readFileSync(sitemapPath, 'utf8');
+  if (!sitemap.includes('https://vojintesanovic0-dot.github.io/medjasi-futsal-liga-v2/')) fail.push('sitemap.xml does not contain the published Pages URL.');
+}
+if (fs.existsSync(robotsPath) && !fs.readFileSync(robotsPath, 'utf8').includes('sitemap.xml')) {
+  fail.push('robots.txt must include the sitemap URL.');
+}
+
 if (fail.length) {
   console.error(fail.join('\n\n'));
   process.exit(1);

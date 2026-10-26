@@ -12,8 +12,24 @@ function postHtml(p, likedSet) {
   const img = safeUrl(p.image_url);
   const liked = likedSet.has(p.id);
   const canDelete = uid && (uid === p.user_id || isStaff());
-  return `<article class="post card" data-post="${esc(p.id)}"><header class="post-head"><span class="avatar-link sm">${esc((p.username || '?').slice(0, 2).toUpperCase())}</span><div><strong>${esc(p.display_name || p.username)}</strong> <span class="muted small">@${esc(p.username)} · ${esc(fmtTime(p.created_at))}</span></div>${canDelete ? `<button class="btn btn-ghost btn-sm post-del" data-del="${esc(p.id)}" aria-label="Obriši objavu">🗑</button>` : ''}</header><p class="post-body">${esc(p.content).replace(/\n/g, '<br>')}</p>${img ? `<img class="post-img" src="${esc(img)}" alt="" loading="lazy">` : ''}<footer class="post-actions"><button class="btn btn-ghost btn-sm like-btn ${liked ? 'on' : ''}" data-like="${esc(p.id)}" aria-pressed="${liked}" ${uid ? '' : 'disabled title="Prijavi se da lajkuješ"'}>♥ <span>${p.likes}</span></button><button class="btn btn-ghost btn-sm" data-toggle-comments="${esc(p.id)}">💬 ${p.comments}</button></footer><div class="comments" data-comments="${esc(p.id)}" hidden></div></article>`;
+  return `<article class="post card" data-post="${esc(p.id)}"><header class="post-head"><span class="avatar-link sm">${esc((p.username || '?').slice(0, 2).toUpperCase())}</span><div><strong>${esc(p.display_name || p.username)}</strong> <span class="muted small">@${esc(p.username)} · ${esc(fmtTime(p.created_at))}</span></div>${canDelete ? `<button class="btn btn-ghost btn-sm post-del" data-del="${esc(p.id)}" aria-label="Obriši objavu">🗑</button>` : ''}</header><p class="post-body">${esc(p.content).replace(/\n/g, '<br>')}</p>${img ? `<img class="post-img" src="${esc(img)}" alt="" loading="lazy">` : ''}<footer class="post-actions"><button class="btn btn-ghost btn-sm like-btn ${liked ? 'on' : ''}" data-like="${esc(p.id)}" aria-pressed="${liked}" ${uid ? '' : 'disabled title="Prijavi se da lajkuješ"'}>♥ <span>${p.likes}</span></button><button class="btn btn-ghost btn-sm" data-toggle-comments="${esc(p.id)}">💬 ${p.comments}</button>${uid ? `<button class="btn btn-ghost btn-sm" data-report="post:${esc(p.id)}" title="Prijavi objavu" aria-label="Prijavi objavu">⚑</button>` : ''}</footer><div class="comments" data-comments="${esc(p.id)}" hidden></div></article>`;
 }
+async function reportItem(key, uid) {
+  if (!uid) { toast('Prijavi se da prijaviš sadržaj.', 'err'); return; }
+  const [type, id] = key.split(':');
+  if (!['post', 'comment'].includes(type) || !id) return;
+  const reason = prompt('Razlog prijave (npr. uvreda, spam, neprimjereno):');
+  if (!reason || reason.trim().length < 3) return;
+  const { error } = await sb.from('reports').insert({
+    reporter_id: uid, target_type: type, target_id: id, reason: reason.trim().slice(0, 300),
+  });
+  if (error) {
+    toast(error.code === '23505' ? 'Već si prijavio/la ovaj sadržaj.' : errMsg(error), 'err');
+    return;
+  }
+  toast('Hvala, prijava je poslana moderatorima.');
+}
+
 export function registerCommunity(route) {
   route('/zajednica', async (ctx) => {
     const uid = state.session?.user?.id;
@@ -23,21 +39,22 @@ export function registerCommunity(route) {
     ctx.app.innerHTML = `<div class="page-head"><h1>Zajednica</h1><p class="muted">Objave, komentari i lajkovi navijača.</p></div>${uid ? `<form id="composer" class="card composer"><textarea name="content" maxlength="1000" rows="3" required placeholder="Šta se dešava u ligi?"></textarea><div class="composer-row"><label class="btn btn-ghost btn-sm file-btn">📷 Slika<input type="file" name="image" accept="image/*" hidden></label><span class="muted small" id="file-name"></span><button class="btn btn-primary" type="submit">Objavi</button></div></form>` : `<div class="card"><a href="#/prijava">Prijavi se</a> da objavljuješ i komentarišeš.</div>`}<div id="feed">${feed.length ? feed.map((p) => postHtml(p, likedSet)).join('') : empty('Još nema objava. Budi prvi!')}</div><div class="more-row"><button class="btn" id="more" ${feed.length < PAGE ? 'hidden' : ''}>Učitaj još</button></div>`;
     const feedEl = ctx.app.querySelector('#feed');
     feedEl.addEventListener('click', async (e) => {
-      const like = e.target.closest('[data-like]'); const tog = e.target.closest('[data-toggle-comments]'); const del = e.target.closest('[data-del]');
+      const like = e.target.closest('[data-like]'); const tog = e.target.closest('[data-toggle-comments]'); const del = e.target.closest('[data-del]'); const rep = e.target.closest('[data-report]');
       if (like && uid) {
         const id = like.dataset.like; const on = likedSet.has(id); like.disabled = true;
         try { if (on) { await unlikePost(uid, id); likedSet.delete(id); } else { await likePost(uid, id); likedSet.add(id); }
           const span = like.querySelector('span'); span.textContent = Math.max(0, Number(span.textContent) + (on ? -1 : 1));
           like.classList.toggle('on', !on); like.setAttribute('aria-pressed', String(!on));
         } catch (err) { toast(errMsg(err), 'err'); } like.disabled = false;
-      } else if (tog) { await toggleComments(tog.dataset.toggleComments, uid); }
+      } else if (rep) { await reportItem(rep.dataset.report, uid); }
+      else if (tog) { await toggleComments(tog.dataset.toggleComments, uid); }
       else if (del) { if (!confirm('Obrisati objavu?')) return; try { await deletePost(del.dataset.del); document.querySelector(`[data-post="${del.dataset.del}"]`)?.remove(); toast('Objava obrisana.'); } catch (err) { toast(errMsg(err), 'err'); } }
     });
     async function toggleComments(postId, userId) {
       const box = feedEl.querySelector(`[data-comments="${postId}"]`); if (!box) return;
       box.hidden = !box.hidden; if (box.hidden || box.dataset.loaded) return;
       const list = await getComments(postId); box.dataset.loaded = '1';
-      box.innerHTML = `${list.map((c) => `<div class="comment"><strong>${esc(c.username)}</strong><span class="muted small">${esc(fmtTime(c.created_at))}</span><p>${esc(c.content)}</p></div>`).join('') || '<p class="muted small">Još nema komentara.</p>'}${userId ? `<form class="comment-form" data-post="${esc(postId)}"><input name="c" maxlength="500" required placeholder="Napiši komentar…" autocomplete="off"><button class="btn btn-sm btn-primary" type="submit">Pošalji</button></form>` : ''}`;
+      box.innerHTML = `${list.map((c) => `<div class="comment"><strong>${esc(c.username)}</strong><span class="muted small">${esc(fmtTime(c.created_at))}</span><p>${esc(c.content)}</p>${userId ? `<button class="link-btn small" data-report="comment:${esc(c.id)}">Prijavi</button>` : ''}</div>`).join('') || '<p class="muted small">Još nema komentara.</p>'}${userId ? `<form class="comment-form" data-post="${esc(postId)}"><input name="c" maxlength="500" required placeholder="Napiši komentar…" autocomplete="off"><button class="btn btn-sm btn-primary" type="submit">Pošalji</button></form>` : ''}`;
     }
     feedEl.addEventListener('submit', async (e) => {
       const form = e.target.closest('.comment-form'); if (!form || !uid) return; e.preventDefault();

@@ -55,3 +55,19 @@
 .form-lost { background: var(--live); color: #fff; }
 .footer-links { display: flex; gap: 14px; justify-content: center; flex-wrap: wrap; margin-top: 6px; font-size: .9rem; }
 .footer-links a { color: var(--muted); text-decoration: underline; }
+
+
+/* ===== v5: pretraga, MVP, chat utakmice, upozorenja i prijave ===== */
+.search-box input { width: 100%; padding: 14px 16px; font-size: 1.05rem; border-radius: 14px;
+  background: var(--card); color: var(--text); border: 1px solid var(--line); }
+.search-box input:focus { border-color: var(--accent); outline: 2px solid color-mix(in srgb, var(--accent) 25%, transparent); }
+.mvp-form { display: flex; gap: 8px; flex-wrap: wrap; align-items: center; margin-bottom: 12px; }
+.mvp-form select { flex: 1; min-width: 200px; padding: 10px; border-radius: 10px; background: var(--card-2); color: var(--text); border: 1px solid var(--line); }
+.mvp-list li { margin: 4px 0; }
+.match-chat { max-height: 360px; overflow-y: auto; padding: 12px; margin-bottom: 10px; }
+.match-chat .comment { border-bottom: 1px solid var(--line); padding: 8px 0; }
+.warn-box { border-color: var(--accent); margin-top: 16px; }
+.warn-box h2 { margin: 0 0 8px; }
+.report blockquote { margin: 8px 0; padding: 8px 12px; border-left: 3px solid var(--accent); background: var(--card-2); border-radius: 8px; }
+.report .row-gap { display: flex; gap: 8px; flex-wrap: wrap; }
+.link-btn.small { font-size: .8rem; padding: 2px 4px; }
