@@ -1,6 +1,6 @@
 import { getActiveSeason, getStandings, getMatches, getPublishedNews } from '../api.js';
-import { esc, fmtLong, empty } from '../util.js';
-import { matchCard, standingsTable } from '../components.js';
+import { esc, fmtLong, fmtDateTime, empty } from '../util.js';
+import { matchCard, standingsTable, badge, scoreHtml } from '../components.js';
 
 export function registerHome(route) {
   route('/', async (ctx) => {
@@ -13,6 +13,30 @@ export function registerHome(route) {
     const live = matches.filter((m) => m.status === 'live' || m.status === 'paused');
     const upcoming = matches.filter((m) => m.status === 'scheduled').slice(0, 3);
     const recent = matches.filter((m) => m.status === 'finished').slice(-3).reverse();
+    const spotlight = live[0] || upcoming[0] || recent[0] || null;
+    const spotlightIsLive = Boolean(spotlight && (spotlight.status === 'live' || spotlight.status === 'paused'));
+    const spotlightIsScheduled = spotlight?.status === 'scheduled';
+    const spotlightLabel = spotlightIsLive ? (spotlight.status === 'paused' ? 'PAUZA' : 'UŽIVO')
+      : spotlightIsScheduled ? 'SLJEDEĆA UTAKMICA' : 'POSLJEDNJI REZULTAT';
+    const spotlightInfo = spotlightIsScheduled ? fmtDateTime(spotlight.scheduled_at)
+      : spotlightIsLive ? (spotlight.status === 'paused' ? 'Utakmica je u pauzi' : 'Rezultat uživo') : 'Konačan rezultat';
+    const homeName = spotlight ? String(spotlight.home?.short_name || spotlight.home?.name || 'Domaći') : '';
+    const awayName = spotlight ? String(spotlight.away?.short_name || spotlight.away?.name || 'Gosti') : '';
+    const spotlightClass = spotlightIsLive ? 'is-live' : spotlightIsScheduled ? 'is-upcoming' : 'is-finished';
+    const featuredMatch = spotlight
+      ? '<a class="home-floating-card home-float-bottom home-match-spotlight ' + spotlightClass
+        + '" href="#/utakmica/' + esc(spotlight.id) + '" aria-label="Detalji utakmice: ' + esc(homeName) + ' — ' + esc(awayName) + '">'
+        + '<div class="home-spotlight-top"><span class="home-spotlight-status"><i class="home-spotlight-pip" aria-hidden="true"></i>' + spotlightLabel
+        + '</span><span class="home-spotlight-meta">' + esc(spotlightInfo) + '</span></div>'
+        + '<div class="home-spotlight-matchup"><span class="home-spotlight-team home-spotlight-home">' + badge(spotlight.home, 'sm')
+        + '<strong>' + esc(homeName) + '</strong></span><span class="home-spotlight-score">' + scoreHtml(spotlight)
+        + '</span><span class="home-spotlight-team home-spotlight-away"><strong>' + esc(awayName) + '</strong>'
+        + badge(spotlight.away, 'sm') + '</span></div>'
+        + '<div class="home-spotlight-footer"><span>' + esc(spotlight.round) + '. kolo</span><strong>Detalji utakmice <span aria-hidden="true">↗</span></strong></div></a>'
+      : '<div class="home-floating-card home-float-bottom home-match-spotlight is-empty"><div class="home-spotlight-top">'
+        + '<span class="home-spotlight-status"><i class="home-spotlight-pip" aria-hidden="true"></i>SEZONA</span>'
+        + '<span class="home-spotlight-meta">' + esc(season.name) + '</span></div>'
+        + '<div class="home-spotlight-empty"><strong>Nema utakmica za prikaz</strong><span>Raspored i rezultati lige</span></div></div>';
     const section = (title, items, link) => items.length
       ? `<section class="block home-block"><div class="block-head"><h2>${title}</h2>${link || ''}</div><div class="grid-matches">${items.map(matchCard).join('')}</div></section>`
       : '';
@@ -37,24 +61,21 @@ export function registerHome(route) {
               <span class="home-foot-caption">Zvanični pregled sezone</span>
             </div>
           </div>
-          <div class="home-visual" aria-hidden="true">
-            <div class="home-visual-grid"></div>
-            <div class="home-pitch">
+          <div class="home-visual">
+            <div class="home-visual-grid" aria-hidden="true"></div>
+            <div class="home-pitch" aria-hidden="true">
               <span class="home-pitch-half"></span>
               <span class="home-center-circle"></span>
               <span class="home-pitch-spot"></span>
               <span class="home-goal home-goal-left"></span>
               <span class="home-goal home-goal-right"></span>
             </div>
-            <div class="home-visual-orb"><span>MF</span></div>
-            <div class="home-floating-card home-float-top">
+            <div class="home-visual-orb" aria-hidden="true"><span>MF</span></div>
+            <div class="home-floating-card home-float-top" aria-hidden="true">
               <span class="home-float-symbol" aria-hidden="true">✦</span>
               <span><strong>Futsal u fokusu</strong><small>Strast. Tim. Igra.</small></span>
             </div>
-            <div class="home-floating-card home-float-bottom">
-              <span class="home-float-live">${live.length ? 'LIVE' : 'LIGA'}</span>
-              <span><strong>${live.length ? 'Akcija je u toku' : 'Sezona na jednom mjestu'}</strong><small>${live.length ? 'Prati utakmicu uživo' : 'Raspored, tabela i vijesti'}</small></span>
-            </div>
+            ${featuredMatch}
           </div>
         </section>
 
