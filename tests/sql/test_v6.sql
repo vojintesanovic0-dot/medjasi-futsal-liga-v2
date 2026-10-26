@@ -1,4 +1,4 @@
-\\set ON_ERROR_STOP on
+\set ON_ERROR_STOP on
 create or replace function pg_temp.expect(label text, ok boolean)
 returns void language plpgsql as $$
 begin
