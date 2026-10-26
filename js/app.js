@@ -16,6 +16,8 @@ import { registerFan } from './pages/fan.js';
 import { registerCommunity } from './pages/community.js';
 import { registerStats } from './pages/stats.js';
 import { registerSW } from './push.js';
+import { registerSearch } from './pages/search.js';
+import { initSeo } from './seo.js';
 
 registerHome(route);
 registerStandings(route);
@@ -29,7 +31,9 @@ registerAdmin(route);
 registerFan(route);
 registerCommunity(route);
 registerStats(route);
+registerSearch(route);
 registerSW();
+initSeo();
 
 // Sat uživo: jedan interval za sve elemente na stranici
 setInterval(() => {
