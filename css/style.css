@@ -711,3 +711,70 @@ input::placeholder, textarea::placeholder { color: #68796f; opacity: 1; }
   .stats-bar-track > span { animation: none; }
   .gallery figure, .gallery figure img { transition: none; }
 }
+
+
+/* ===== Home follow-through: live or next fixture is the hero focal point ===== */
+.home-dashboard .home-match-spotlight {
+  display: block;
+  width: min(390px, 98%);
+  max-width: 390px;
+  right: 0;
+  bottom: 5%;
+  padding: 13px 14px 11px;
+  gap: 0;
+  color: #eef8f0;
+  text-decoration: none;
+  border-color: rgba(168,239,184,.23);
+  background: linear-gradient(140deg,rgba(23,39,29,.97),rgba(11,18,15,.96));
+  box-shadow: 0 18px 42px rgba(0,0,0,.42), inset 0 1px rgba(255,255,255,.045);
+  backdrop-filter: blur(16px);
+  animation: home-float 6s ease-in-out infinite;
+  transition: border-color .2s ease, box-shadow .2s ease, transform .2s ease;
+}
+.home-dashboard a.home-match-spotlight:hover {
+  color: #fff;
+  border-color: rgba(134,239,172,.56);
+  box-shadow: 0 20px 48px rgba(0,0,0,.48), 0 0 0 1px rgba(34,197,94,.08);
+}
+.home-spotlight-top { display: flex; justify-content: space-between; align-items: center; gap: 9px; margin-bottom: 12px; }
+.home-spotlight-status { display: inline-flex; align-items: center; gap: 7px; color: #9bf4b3; font-size: .64rem; font-weight: 900; letter-spacing: .1em; white-space: nowrap; }
+.home-spotlight-pip { width: 6px; height: 6px; flex: none; border-radius: 50%; background: #49e77f; box-shadow: 0 0 0 4px rgba(73,231,127,.1); }
+.home-match-spotlight.is-live { border-color: rgba(255,106,126,.42); }
+.home-match-spotlight.is-live .home-spotlight-status { color: #ff9aa9; }
+.home-match-spotlight.is-live .home-spotlight-pip { background: #ff536d; box-shadow: 0 0 0 4px rgba(255,83,109,.11); animation: live-pulse 1.6s infinite; }
+.home-match-spotlight.is-finished .home-spotlight-pip { background: #8a9b90; box-shadow: none; }
+.home-spotlight-meta { max-width: 62%; color: #97a99b; font-size: .67rem; text-align: right; overflow-wrap: anywhere; }
+.home-spotlight-matchup { display: grid; grid-template-columns: minmax(0,1fr) auto minmax(0,1fr); align-items: center; gap: 8px; }
+.home-spotlight-team { display: flex; align-items: center; gap: 7px; min-width: 0; }
+.home-spotlight-team strong { min-width: 0; overflow: hidden; white-space: nowrap; text-overflow: ellipsis; font-size: .78rem; color: #eff8f1; }
+.home-spotlight-team .badge { width: 27px; height: 27px; font-size: .55rem; flex: 0 0 27px; border-width: 1px; }
+.home-spotlight-away { justify-content: flex-end; text-align: right; }
+.home-spotlight-score { display: flex; align-items: center; justify-content: center; gap: 4px; min-width: 48px; color: #c2f7ce; font-size: 1.15rem; font-weight: 950; font-variant-numeric: tabular-nums; white-space: nowrap; }
+.home-spotlight-score .colon { color: #789482; font-size: .95em; }
+.home-spotlight-score .vs { color: #a0b1a5; font-size: .8rem; }
+.home-spotlight-footer { display: flex; justify-content: space-between; align-items: center; gap: 8px; margin-top: 12px; padding-top: 10px; border-top: 1px solid rgba(199,235,207,.1); color: #829789; font-size: .67rem; }
+.home-spotlight-footer strong { display: inline-flex; align-items: center; gap: 5px; color: #a4f3b8; font-size: .69rem; }
+.home-spotlight-footer strong span { transition: transform .2s ease; }
+.home-match-spotlight:hover .home-spotlight-footer strong span { transform: translate(2px,-2px); }
+.home-spotlight-empty { display: grid; gap: 4px; padding: 4px 0 8px; }
+.home-spotlight-empty strong { color: #eff8f1; font-size: .88rem; }
+.home-spotlight-empty span { color: #97a99b; font-size: .72rem; }
+@media (max-width: 900px) {
+  .home-dashboard .home-match-spotlight { width: min(360px, 98%); right: 0; bottom: 2%; padding: 12px; }
+}
+@media (max-width: 640px) {
+  .home-dashboard .home-match-spotlight { width: min(350px, 100%); right: 0; bottom: 0; padding: 11px 12px 9px; border-radius: 13px; }
+  .home-spotlight-top { margin-bottom: 10px; }
+  .home-spotlight-status { font-size: .6rem; }
+  .home-spotlight-meta { font-size: .63rem; }
+  .home-spotlight-team { gap: 5px; }
+  .home-spotlight-team strong { font-size: .73rem; }
+  .home-spotlight-team .badge { width: 24px; height: 24px; flex-basis: 24px; }
+  .home-spotlight-score { gap: 2px; min-width: 40px; font-size: 1.05rem; }
+  .home-spotlight-footer { margin-top: 9px; padding-top: 8px; }
+}
+@media (prefers-reduced-motion: reduce) {
+  .home-dashboard .home-match-spotlight { animation: none; }
+  .home-spotlight-pip { animation: none; }
+  .home-spotlight-footer strong span { transition: none; }
+}
