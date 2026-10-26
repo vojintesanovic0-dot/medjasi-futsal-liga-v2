@@ -1,0 +1,33 @@
+name: backup
+on:
+  schedule:
+    - cron: '0 3 * * *'
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  dump:
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    steps:
+      - name: Check backup secret
+        env:
+          SUPABASE_DB_URL: ${{ secrets.SUPABASE_DB_URL }}
+        run: |
+          if [ -z "$SUPABASE_DB_URL" ]; then
+            echo "::error::Set the SUPABASE_DB_URL repository secret before running backups."
+            exit 1
+          fi
+      - name: Dump public schema data
+        env:
+          SUPABASE_DB_URL: ${{ secrets.SUPABASE_DB_URL }}
+        run: |
+          docker run --rm -e SUPABASE_DB_URL="$SUPABASE_DB_URL" -v "$PWD:/out" postgres:17 \
+            sh -c 'pg_dump "$SUPABASE_DB_URL" --schema=public --no-owner --no-privileges --format=custom --file=/out/liga-$(date +%F).dump'
+      - uses: actions/upload-artifact@v4
+        with:
+          name: liga-backup-${{ github.run_id }}
+          path: liga-*.dump
+          retention-days: 14
