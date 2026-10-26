@@ -27,7 +27,21 @@ export function registerAuth(route) {
     form.addEventListener('submit', async (e) => {
       e.preventDefault(); const fd = new FormData(form); const email = String(fd.get('email')).trim(); const password = String(fd.get('password')); msg.textContent = '';
       try {
-        if (mode === 'login') { const { error } = await sb.auth.signInWithPassword({ email, password }); if (error) throw error; location.hash = '#/profil'; }
+        if (mode === 'login') {
+          const { error } = await sb.auth.signInWithPassword({ email, password });
+          if (error) {
+            if (/confirm/i.test(error.message || '')) {
+              msg.innerHTML = 'Nalog još nije potvrđen. Provjeri e-mail. <button type="button" class="link-btn" id="resend">Pošalji ponovo</button>';
+              msg.querySelector('#resend').addEventListener('click', async () => {
+                const { error: resendError } = await sb.auth.resend({ type: 'signup', email });
+                toast(resendError ? errMsg(resendError) : 'Poslali smo novi link za potvrdu.', resendError ? 'err' : undefined);
+              });
+              return;
+            }
+            throw error;
+          }
+          location.hash = '#/profil';
+        }
         else {
           const username = String(fd.get('username') || '').toLowerCase();
           if (!USERNAME_RE.test(username)) throw new Error('Korisničko ime: 3–20 znakova, samo a–z, 0–9 i _.');
@@ -96,7 +110,12 @@ export function registerAuth(route) {
   route('/profil', async (ctx) => {
     if (!state.session) { location.hash = '#/prijava'; return; }
     const p = state.profile || {};
-    ctx.app.innerHTML = `<div class="page-head"><h1>Moj profil</h1><p class="muted">@${esc(p.username || '')} · ${esc(p.role || 'user')}</p></div><form id="profile-form" class="card form narrow"><label>Ime za prikaz<input name="display_name" maxlength="40" value="${esc(p.display_name || '')}"></label><label>Kratka biografija<textarea name="bio" maxlength="280" rows="3">${esc(p.bio || '')}</textarea></label><label>Link do avatara (slika)<input name="avatar_url" type="url" value="${esc(p.avatar_url || '')}"></label><button class="btn btn-primary" type="submit">Sačuvaj</button><button class="btn btn-ghost" type="button" id="logout">Odjavi se</button></form><section class="card narrow danger-box"><h2>Brisanje naloga</h2><p class="muted small">Brišu se profil, objave, komentari, pogađanja i pretplate na obavještenja. Radnja se ne može poništiti.</p><button class="btn btn-danger" type="button" id="delete-account">Obriši moj nalog</button></section><section class="card narrow push-box"><h2>Obavještenja</h2><p class="muted small" id="push-msg">Dobij obavještenje o počecima utakmica i novim vijestima.</p><button class="btn" type="button" id="push-toggle">Učitavam…</button></section>`;
+    const { data: warnings, error: warningsError } = await sb.from('user_warnings').select('*')
+      .eq('user_id', state.session.user.id).order('created_at', { ascending: false });
+    if (warningsError) throw warningsError;
+    ctx.app.innerHTML = `<div class="page-head"><h1>Moj profil</h1><p class="muted">@${esc(p.username || '')} · ${esc(p.role || 'user')}</p></div><form id="profile-form" class="card form narrow"><label>Ime za prikaz<input name="display_name" maxlength="40" value="${esc(p.display_name || '')}"></label><label>Kratka biografija<textarea name="bio" maxlength="280" rows="3">${esc(p.bio || '')}</textarea></label><label>Link do avatara (slika)<input name="avatar_url" type="url" value="${esc(p.avatar_url || '')}"></label><button class="btn btn-primary" type="submit">Sačuvaj</button><button class="btn btn-ghost" type="button" id="logout">Odjavi se</button></form>${(warnings || []).length ? `<section class="card narrow warn-box"><h2>Upozorenja</h2>
+      ${warnings.map((w) => `<p>⚠️ ${esc(w.message)} <span class="muted small">${esc(new Date(w.created_at).toLocaleDateString('bs-BA'))}</span></p>`).join('')}
+    </section>` : ''}<section class="card narrow danger-box"><h2>Brisanje naloga</h2><p class="muted small">Brišu se profil, objave, komentari, pogađanja i pretplate na obavještenja. Radnja se ne može poništiti.</p><button class="btn btn-danger" type="button" id="delete-account">Obriši moj nalog</button></section><section class="card narrow push-box"><h2>Obavještenja</h2><p class="muted small" id="push-msg">Dobij obavještenje o počecima utakmica i novim vijestima.</p><button class="btn" type="button" id="push-toggle">Učitavam…</button></section>`;
     const pushBtn = ctx.app.querySelector('#push-toggle'); const pushMsg = ctx.app.querySelector('#push-msg');
     const refreshPush = async () => {
       if (!pushSupported() || !VAPID_PUBLIC_KEY) { pushBtn.disabled = true; pushBtn.textContent = 'Nedostupno'; pushMsg.textContent = !pushSupported() ? 'Ovaj preglednik ne podržava obavještenja.' : 'Obavještenja još nisu podešena.'; return; }
