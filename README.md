@@ -81,3 +81,18 @@ Naslovna slika vijesti se unosi kao URL u admin panelu; upload slike direktno s 
 - Security advisors trenutno ne prikazuju upozorenja.
 - RPC za fan raspodjelu i rang-listu izvršava se uspješno nad praznom bazom.
 - Registracija kroz browser, stvarna prijava, objava vijesti, Storage upload i mobilni push još zahtijevaju test nakon aktiviranja Pages i kreiranja prvog admin naloga.
+
+
+## v4 izmjene (26.10.2026.)
+
+- Zelena akcentna tema, animacije i poštovanje postavke smanjenih animacija.
+- Oporavak zaboravljene lozinke, forma posljednjih pet završenih utakmica i .ics kalendar cijele sezone.
+- Nova stranica Statistika: strijelci, asistencije i fair play.
+- Profil nudi brisanje naloga uz potvrdu; Edge Function provjerava ulogu, štiti posljednjeg administratora i čisti korisnikove slike objava.
+- Dodana je stranica Privatnost i uslovi.
+
+### Koraci prije pune produkcijske upotrebe
+
+1. U Supabase Authentication → URL Configuration postavi Site URL na `https://vojintesanovic0-dot.github.io/medjasi-futsal-liga-v2/` i dodaj Redirect URL `https://vojintesanovic0-dot.github.io/medjasi-futsal-liga-v2/**`. Ovo je potrebno da reset lozinke vrati korisnika na ispravnu rutu.
+2. U `privatnost.html` obavezno zamijeni sve vrijednosti u uglastim zagradama (kontakt, organizator, pravni osnov i starosna granica) i provjeri tekst prije konačne objave.
+3. Statistika čita view `public.player_stats`; za postojeću bazu primjenjuje se migracija `supabase/migrations/20261026_player_stats.sql`.

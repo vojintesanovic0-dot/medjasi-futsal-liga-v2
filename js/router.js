@@ -11,7 +11,8 @@ export function route(pattern, handler, opts = {}) {
 }
 export function onLeave(fn) { cleanups.push(fn); }
 export function currentPath() {
-  return (location.hash.replace(/^#/, '') || '/').split('?')[0];
+  const routeHash = location.hash.replace(/^#/, '');
+  return (routeHash.split('?')[0].split('#')[0] || '/');
 }
 export async function render(opts = {}) {
   const my = ++token;

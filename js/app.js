@@ -14,6 +14,7 @@ import { registerAuth } from './pages/auth.js';
 import { registerAdmin } from './pages/admin.js';
 import { registerFan } from './pages/fan.js';
 import { registerCommunity } from './pages/community.js';
+import { registerStats } from './pages/stats.js';
 import { registerSW } from './push.js';
 
 registerHome(route);
@@ -27,6 +28,7 @@ registerAuth(route);
 registerAdmin(route);
 registerFan(route);
 registerCommunity(route);
+registerStats(route);
 registerSW();
 
 // Sat uživo: jedan interval za sve elemente na stranici
@@ -51,7 +53,11 @@ async function boot() {
   renderNavUser();
   onAuthChange((_st, event) => {
     renderNavUser();
-    if (event === 'SIGNED_IN' || event === 'SIGNED_OUT') render();
+    if (event === 'PASSWORD_RECOVERY' && location.hash !== '#/nova-lozinka') {
+      location.hash = '#/nova-lozinka';
+      return;
+    }
+    if (event === 'SIGNED_IN' || event === 'SIGNED_OUT' || event === 'PASSWORD_RECOVERY') render();
   });
   window.addEventListener('hashchange', render);
   document.getElementById('nav-toggle')?.addEventListener('click', () =>

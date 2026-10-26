@@ -2,7 +2,7 @@ import { getActiveSeason, getMatches, getMatch, getEvents, getPlayers } from '..
 import { esc, fmtDateTime, empty, periodName, STATUS_LABEL } from '../util.js';
 import { matchCard, badge, scoreHtml, statusPill, clockHtml } from '../components.js';
 import { onLeave } from '../router.js';
-import { shareMatchImage, matchIcsUrl } from '../share.js';
+import { shareMatchImage, matchIcsUrl, seasonIcsUrl } from '../share.js';
 import { toast, errMsg } from '../util.js';
 
 const EVENT_LABEL = { goal: '⚽ Gol', own_goal: '⚽ Autogol', yellow: '🟨 Žuti karton', red: '🟥 Crveni karton' };
@@ -11,7 +11,13 @@ export function registerMatches(route) {
     const season = await getActiveSeason(); if (!season) { ctx.app.innerHTML = empty('Nema aktivne sezone.'); return; }
     const matches = await getMatches(season.id); if (!ctx.current()) return;
     const rounds = [...new Set(matches.map((m) => m.round))].sort((a, b) => a - b);
-    ctx.app.innerHTML = `<div class="page-head"><h1>Utakmice</h1><div class="filters" role="tablist">${[['all', 'Sve'], ['live', 'Uživo'], ['scheduled', 'Predstojeće'], ['finished', 'Završene']].map(([k, l], i) => `<button class="chip${i === 0 ? ' on' : ''}" data-filter="${k}">${l}</button>`).join('')}</div></div><div id="match-list">${rounds.length ? rounds.map((r) => `<section class="round" data-round><h2>${r}. kolo</h2><div class="grid-matches">${matches.filter((m) => m.round === r).map((m) => `<div data-status="${esc(m.status)}" class="mw">${matchCard(m)}</div>`).join('')}</div></section>`).join('') : empty('Nema utakmica.')}</div>`;
+    ctx.app.innerHTML = `<div class="page-head"><h1>Utakmice</h1><div class="filters" role="tablist">${[['all', 'Sve'], ['live', 'Uživo'], ['scheduled', 'Predstojeće'], ['finished', 'Završene']].map(([k, l], i) => `<button class="chip${i === 0 ? ' on' : ''}" data-filter="${k}">${l}</button>`).join('')}</div></div><div class="match-actions"><a class="btn btn-sm" id="season-ics" href="#" download="sezona.ics"${matches.length ? '' : ' hidden'}>📅 Kalendar cijele sezone</a></div><div id="match-list">${rounds.length ? rounds.map((r) => `<section class="round" data-round><h2>${r}. kolo</h2><div class="grid-matches">${matches.filter((m) => m.round === r).map((m) => `<div data-status="${esc(m.status)}" class="mw">${matchCard(m)}</div>`).join('')}</div></section>`).join('') : empty('Nema utakmica.')}</div>`;
+    const seasonLink = ctx.app.querySelector('#season-ics');
+    if (seasonLink && matches.length) {
+      const icsUrl = seasonIcsUrl(matches, season.name);
+      seasonLink.href = icsUrl;
+      onLeave(() => URL.revokeObjectURL(icsUrl));
+    }
     ctx.app.querySelectorAll('[data-filter]').forEach((btn) => btn.addEventListener('click', () => {
       ctx.app.querySelectorAll('[data-filter]').forEach((b) => b.classList.toggle('on', b === btn)); const f = btn.dataset.filter;
       ctx.app.querySelectorAll('.mw').forEach((el) => { const st = el.dataset.status; const show = f === 'all' || (f === 'live' ? (st === 'live' || st === 'paused') : st === f); el.hidden = !show; });

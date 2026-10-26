@@ -26,6 +26,7 @@ export const getNewsBySlug = (slug) => unwrap(sb.from('news').select('*').eq('sl
 export const getAllNews = () => unwrap(sb.from('news').select('*').order('created_at', { ascending: false }));
 export const getGallery = () => unwrap(sb.from('gallery').select('*').order('created_at', { ascending: false }).limit(120));
 export const getProfile = (id) => unwrap(sb.from('profiles').select('id,username,display_name,avatar_url,bio,role').eq('id', id).maybeSingle());
+export const getPlayerStats = () => unwrap(sb.from('player_stats').select('*'));
 
 // ---------- Fan game ----------
 export const getOpenMatches = (seasonId) => unwrap(sb.from('matches').select(MATCH_SELECT)
