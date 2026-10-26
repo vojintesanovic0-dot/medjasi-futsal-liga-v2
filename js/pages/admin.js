@@ -3,6 +3,8 @@ import { state, isStaff, isAdmin } from '../state.js';
 import { getActiveSeason, getSeasons, getTeams, getPlayers, getMatches, getEvents, getAllNews, getGallery } from '../api.js';
 import { esc, toast, errMsg, empty, matchElapsed, mmss, toLocalInput, fromLocalInput, slugify, STATUS_LABEL, safeColor } from '../util.js';
 import { badge } from '../components.js';
+import { sectionNews2 } from './admin-news.js';
+import { sectionGenerator, sectionAudit, sectionReports } from './admin-extra.js';
 
 const POS = { '': '—', golman: 'Golman', odbrana: 'Odbrana', vezni: 'Vezni', napad: 'Napad' };
 const EVENT_TYPES = { goal: 'Gol', own_goal: 'Autogol', yellow: 'Žuti karton', red: 'Crveni karton' };
@@ -12,9 +14,12 @@ const SECTIONS = {
   utakmice: { label: 'Utakmice', roles: ['admin'], render: sectionMatches },
   ekipe: { label: 'Ekipe i igrači', roles: ['admin'], render: sectionTeams },
   sezone: { label: 'Sezone', roles: ['admin'], render: sectionSeasons },
-  vijesti: { label: 'Vijesti', roles: ['admin', 'editor'], render: sectionNews },
+  vijesti: { label: 'Vijesti', roles: ['admin', 'editor'], render: sectionNews2 },
   galerija: { label: 'Galerija', roles: ['admin', 'editor'], render: sectionGallery },
   uloge: { label: 'Korisnici i uloge', roles: ['admin'], render: sectionUsers },
+  kolo: { label: 'Generator kola', roles: ['admin'], render: sectionGenerator },
+  prijave: { label: 'Prijave', roles: ['admin', 'editor'], render: sectionReports },
+  izmjene: { label: 'Istorija izmjena', roles: ['admin'], render: sectionAudit },
 };
 
 const toastErr = (e) => toast(errMsg(e), 'err');
