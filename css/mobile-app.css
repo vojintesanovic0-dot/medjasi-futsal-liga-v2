@@ -1,0 +1,190 @@
+/* ==========================================================================
+   MOBILNI "APP" SLOJ
+   Aktivan samo na uskim ekranima (do 760px). Desktop izgled se ne mijenja.
+   Učitava se poslije style.css, pa njegova pravila na mobilnom prepisuje.
+   ========================================================================== */
+
+:root {
+  --app-top-h: 56px;
+  --app-tabbar-h: 62px;
+  --app-safe-t: env(safe-area-inset-top, 0px);
+  --app-safe-b: env(safe-area-inset-bottom, 0px);
+}
+
+/* Donja tab traka je skrivena na desktopu */
+.app-tabbar { display: none; }
+
+@media (max-width: 760px) {
+  html { -webkit-text-size-adjust: 100%; text-size-adjust: 100%; }
+
+  body {
+    padding-bottom: calc(var(--app-tabbar-h) + var(--app-safe-b) + 8px);
+    overscroll-behavior-y: contain;
+    -webkit-tap-highlight-color: transparent;
+  }
+
+  /* iOS zumira na polja sa fontom manjim od 16px; zato 16px */
+  input, select, textarea { font-size: 16px; }
+
+  /* ---------- Gornja traka: kompaktna, bez desktop menija ---------- */
+  .topbar {
+    padding-top: var(--app-safe-t);
+    background: color-mix(in srgb, var(--bg) 96%, transparent);
+    backdrop-filter: none;
+    -webkit-backdrop-filter: none;
+    border-bottom: 0;
+    box-shadow: 0 1px 0 var(--line);
+  }
+  .topbar .bar {
+    min-height: var(--app-top-h);
+    padding: 0 16px;
+    gap: 10px;
+    flex-wrap: nowrap;
+  }
+  .topbar .brand { font-size: 1rem; gap: 8px; }
+  .topbar .brand small { display: none; }
+  .topbar .brand-mark { width: 32px; height: 32px; border-radius: 9px; font-size: .95rem; }
+  .topbar .burger { display: none; }
+  .topbar .nav-user { margin-left: auto; gap: 8px; }
+  .topbar .nav-user .btn { min-height: 36px; padding: 6px 12px; font-size: .85rem; }
+
+  /* ---------- "Više" lista: skriven dok se ne otvori ---------- */
+  .topbar .nav {
+    display: none;
+    position: fixed;
+    inset: 0;
+    z-index: 90;
+    width: auto;
+    order: initial;
+    padding: 16px 16px calc(var(--app-tabbar-h) + var(--app-safe-b) + 16px);
+    background: rgba(0, 0, 0, .55);
+    overflow-y: auto;
+    align-content: end;
+  }
+  .topbar .nav.open {
+    top: 0;
+    right: 0;
+    bottom: 0;
+    left: 0;
+    margin: 0;
+    border: 0;
+    height: auto;
+    max-height: none;
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 8px;
+    animation: app-sheet .22s ease both;
+  }
+  .topbar .nav.open a {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    min-height: 52px;
+    padding: 12px 14px;
+    border-radius: 14px;
+    border: 1px solid var(--line);
+    background: var(--card);
+    color: var(--text);
+    font-weight: 700;
+    font-size: .95rem;
+    white-space: normal;
+  }
+  .topbar .nav.open a:active { background: var(--card-2); }
+  .topbar .nav.open a.active { background: var(--accent); color: #111; border-color: transparent; }
+  .topbar .nav.open a.nav-icon { justify-content: center; font-size: .95rem; }
+  .topbar .nav.open a.nav-icon::after { font-size: .95rem; }
+  .topbar .nav.open a.nav-icon::after { content: "Pretraga"; }
+  .topbar .nav.open a.nav-icon svg { width: 20px; height: 20px; }
+  body:has(.topbar .nav.open) { overflow: hidden; }
+
+  /* ---------- Donja tab navigacija ---------- */
+  .app-tabbar {
+    display: grid;
+    grid-template-columns: repeat(5, 1fr);
+    position: fixed;
+    left: 0;
+    right: 0;
+    bottom: 0;
+    z-index: 80;
+    height: calc(var(--app-tabbar-h) + var(--app-safe-b));
+    padding: 6px 6px var(--app-safe-b);
+    background: color-mix(in srgb, var(--card) 97%, transparent);
+    border-top: 1px solid var(--line);
+  }
+  .app-tabbar a,
+  .app-tabbar button {
+    position: relative;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    gap: 3px;
+    min-height: 48px;
+    padding: 0;
+    border: 0;
+    border-radius: 12px;
+    background: none;
+    color: var(--muted);
+    font: inherit;
+    font-size: .68rem;
+    font-weight: 700;
+    text-decoration: none;
+    cursor: pointer;
+    transition: color .15s ease, transform .1s ease;
+  }
+  .app-tabbar svg { width: 22px; height: 22px; }
+  .app-tabbar a:active,
+  .app-tabbar button:active { transform: scale(.94); background: var(--card-2); }
+  .app-tabbar a.active { color: var(--accent); }
+  .app-tabbar a.active svg { filter: drop-shadow(0 0 6px rgba(34, 197, 94, .35)); }
+  .app-tabbar a.active::before {
+    content: "";
+    position: absolute;
+    top: -6px;
+    width: 28px;
+    height: 3px;
+    border-radius: 0 0 3px 3px;
+    background: var(--accent);
+  }
+  .app-tabbar button[aria-expanded="true"] { color: var(--accent); }
+
+  /* ---------- Sadržaj: ljepši "app" ritam ---------- */
+  main#app.wrap {
+    padding-left: 16px;
+    padding-right: 16px;
+    animation: app-enter .28s ease both;
+  }
+  .card {
+    border-radius: 16px;
+    box-shadow: none;
+    padding: 14px;
+  }
+  .page-head h1 { font-size: 1.4rem; }
+  .block { margin: 22px 0; }
+  .block h2 { font-size: 1.1rem; }
+  .btn { min-height: 44px; }
+  .btn-sm { min-height: 38px; }
+  .match-card:hover,
+  .news-card:hover,
+  .team-tile:hover { transform: none; }
+  .match-card:active,
+  .news-card:active,
+  .team-tile:active { transform: scale(.985); }
+  .footer { margin-top: 24px; padding-bottom: 12px; }
+
+  /* Toast iznad donje trake */
+  .toasts { bottom: calc(var(--app-tabbar-h) + var(--app-safe-b) + 12px) !important; }
+
+  @keyframes app-enter {
+    from { opacity: 0; transform: translateY(6px); }
+    to   { opacity: 1; transform: none; }
+  }
+  @keyframes app-sheet {
+    from { opacity: 0; transform: translateY(14px); }
+    to   { opacity: 1; transform: none; }
+  }
+
+  @media (prefers-reduced-motion: reduce) {
+    main#app.wrap, .topbar .nav.open { animation: none; }
+  }
+}
