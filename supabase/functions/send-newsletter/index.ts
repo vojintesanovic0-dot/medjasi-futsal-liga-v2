@@ -82,7 +82,7 @@ Deno.serve(async (req: Request) => {
   const recipients: Recipient[] = [];
   for (let from0 = 0; ; from0 += PAGE) {
     const { data, error } = await admin.from('newsletter_subscribers')
-      .select('email, token').is('unsubscribed_at', null).order('id').range(from0, from0 + PAGE - 1);
+      .select('email, token').is('unsubscribed_at', null).order('email').range(from0, from0 + PAGE - 1);
     if (error) return json({ error: 'Ne mogu učitati pretplatnike.' }, 500);
     recipients.push(...(data as Recipient[] || []));
     if (!data || data.length < PAGE) break;
