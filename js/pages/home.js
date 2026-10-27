@@ -72,7 +72,7 @@ export function registerHome(route) {
             </div>
             <div class="home-visual-orb" aria-hidden="true"><span>MF</span></div>
             <div class="home-floating-card home-float-top" aria-hidden="true">
-              <span class="home-float-symbol" aria-hidden="true">✦</span>
+              <span class="home-float-symbol" aria-hidden="true"><svg viewBox="0 0 24 24" width="18" height="18" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round"><path d="m12 3 2.5 6.5L21 12l-6.5 2.5L12 21l-2.5-6.5L3 12l6.5-2.5L12 3Z"/></svg></span>
               <span><strong>Futsal u fokusu</strong><small>Strast. Tim. Igra.</small></span>
             </div>
             ${featuredMatch}
@@ -81,17 +81,17 @@ export function registerHome(route) {
 
         <section class="home-metrics" aria-label="Brzi pregled lige">
           <a class="home-metric" href="#/utakmice">
-            <span class="home-metric-icon" aria-hidden="true">◷</span>
+            <span class="home-metric-icon" aria-hidden="true"><svg viewBox="0 0 24 24" width="21" height="21" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="9"/><path d="M12 7v5l3 2"/></svg></span>
             <span class="home-metric-copy"><small>Utakmice</small><strong>${matches.length}</strong></span>
             <span class="home-metric-arrow" aria-hidden="true">↗</span>
           </a>
           <a class="home-metric" href="#/tabela">
-            <span class="home-metric-icon" aria-hidden="true">▤</span>
+            <span class="home-metric-icon" aria-hidden="true"><svg viewBox="0 0 24 24" width="21" height="21" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M4 5h16v14H4zM4 10h16M9 5v14"/></svg></span>
             <span class="home-metric-copy"><small>Ekipe na tabeli</small><strong>${table.length}</strong></span>
             <span class="home-metric-arrow" aria-hidden="true">↗</span>
           </a>
           <a class="home-metric" href="#/vijesti">
-            <span class="home-metric-icon" aria-hidden="true">✳</span>
+            <span class="home-metric-icon" aria-hidden="true"><svg viewBox="0 0 24 24" width="21" height="21" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M5 4h14v16H5zM8 8h8M8 12h8M8 16h5"/></svg></span>
             <span class="home-metric-copy"><small>Najnovije vijesti</small><strong>${news.length}</strong></span>
             <span class="home-metric-arrow" aria-hidden="true">↗</span>
           </a>

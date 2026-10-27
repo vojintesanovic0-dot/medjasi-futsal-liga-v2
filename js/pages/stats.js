@@ -26,7 +26,7 @@ function playerRows(stats, key) {
 function table(stats, tab) {
   if (tab === 'fair') {
     const rows = fairRows(stats);
-    return `<table class="standings"><thead><tr><th>#</th><th class="left">Ekipa</th><th>🟨</th><th>🟥</th><th>Bodovi</th></tr></thead><tbody>
+    return `<table class="standings"><thead><tr><th>#</th><th class="left">Ekipa</th><th title="Žuti kartoni">Žuti</th><th title="Crveni kartoni">Crveni</th><th>Bodovi</th></tr></thead><tbody>
       ${rows.map((t, i) => `<tr><td class="pos">${i + 1}</td><td class="team-cell">${badge(t, 'sm')}<span>${esc(t.name)}</span></td>
         <td>${t.yellow}</td><td>${t.red}</td><td class="pts">${t.score}</td></tr>`).join('')}
       </tbody></table>`;
@@ -51,7 +51,7 @@ function visuals(stats, tab) {
           return `<li class="stats-fair-item"><div class="stats-fair-row"><span class="stats-chart-rank">${String(index + 1).padStart(2, '0')}</span>${badge(team, 'sm')}<strong>${esc(team.name)}</strong><span class="stats-fair-cards"><span class="stats-yellow-count">■ ${team.yellow}</span><span class="stats-red-count">■ ${team.red}</span></span><b>${team.score}</b></div><div class="stats-bar-track stats-discipline-track"><span style="width:${width}%"></span></div></li>`;
         }).join('')}</ol>` : empty('Nema disciplinskih podataka.')}
       </article>
-      <aside class="stats-explainer"><span class="stats-explainer-icon" aria-hidden="true">✦</span><span class="stats-overline">BODOVANJE</span><h3>Fer igra je dio rezultata.</h3><p>Žuti karton vrijedi 1 disciplinski bod, a crveni 3. Lista je poredana od najmanjeg broja bodova.</p><div class="stats-card-key"><span><i class="stats-key-yellow"></i>Žuti karton · 1</span><span><i class="stats-key-red"></i>Crveni karton · 3</span></div></aside>
+      <aside class="stats-explainer"><span class="stats-explainer-icon" aria-hidden="true"><svg viewBox="0 0 24 24" width="20" height="20" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round"><path d="m12 3 2.5 6.5L21 12l-6.5 2.5L12 21l-2.5-6.5L3 12l6.5-2.5L12 3Z"/></svg></span><span class="stats-overline">BODOVANJE</span><h3>Fer igra je dio rezultata.</h3><p>Žuti karton vrijedi 1 disciplinski bod, a crveni 3. Lista je poredana od najmanjeg broja bodova.</p><div class="stats-card-key"><span><i class="stats-key-yellow"></i>Žuti karton · 1</span><span><i class="stats-key-red"></i>Crveni karton · 3</span></div></aside>
     </section>`;
   }
 

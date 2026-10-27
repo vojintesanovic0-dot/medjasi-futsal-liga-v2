@@ -18,10 +18,10 @@ function pickCard(m, mine, crowd) {
 }
 function badgesFor(row, index) {
   const badges = [];
-  if (index === 0 && row.points > 0) badges.push('👑 Lider');
-  if (row.exact_hits >= 3) badges.push('🎯 Snajper');
-  if (row.predictions >= 10 && row.points >= 20) badges.push('🔥 Vatreni');
-  return badges.map((label) => `<span class="tag">${label}</span>`).join(' ');
+  if (index === 0 && row.points > 0) badges.push('Lider');
+  if (row.exact_hits >= 3) badges.push('Snajper');
+  if (row.predictions >= 10 && row.points >= 20) badges.push('Forma');
+  return badges.map((label) => `<span class="tag fan-badge fan-badge-${label.toLocaleLowerCase('bs')}">${label}</span>`).join(' ');
 }
 
 export function registerFan(route) {
