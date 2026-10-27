@@ -1061,3 +1061,16 @@ html { scroll-behavior: smooth; }
     padding: 12px;
   }
 }
+
+.account-warning {
+  display: flex;
+  align-items: flex-start;
+  gap: 9px;
+}
+.account-warning-icon {
+  width: 17px;
+  height: 17px;
+  flex: 0 0 17px;
+  margin-top: 2px;
+  color: #e7bd63;
+}
