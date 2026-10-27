@@ -58,7 +58,7 @@ export const getComments = (postId) => unwrap(sb.from('post_comments').select('*
 export const createPost = (userId, content, imageUrl) => unwrap(sb.from('posts')
   .insert({ user_id: userId, content, image_url: imageUrl || null }).select().single());
 export const addComment = (userId, postId, content) => unwrap(sb.from('post_comments')
-  .insert({ user_id: userId, post_id: postId, username: 'korisnik', content }).select().single());
+  .insert({ user_id: userId, post_id: postId, content }).select().single());
 export const likePost = (userId, postId) => unwrap(sb.from('post_likes').insert({ user_id: userId, post_id: postId }));
 export const unlikePost = (userId, postId) => unwrap(sb.from('post_likes').delete()
   .eq('user_id', userId).eq('post_id', postId));
