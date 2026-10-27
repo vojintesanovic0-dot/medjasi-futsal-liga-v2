@@ -5,6 +5,7 @@ import { esc, toast, errMsg, empty, matchElapsed, mmss, toLocalInput, fromLocalI
 import { badge } from '../components.js';
 import { sectionNews2 } from './admin-news.js';
 import { sectionGenerator, sectionAudit, sectionReports } from './admin-extra.js';
+import { bindLineup } from './admin-lineup.js';
 
 const POS = { '': '—', golman: 'Golman', odbrana: 'Odbrana', vezni: 'Vezni', napad: 'Napad' };
 const EVENT_TYPES = { goal: 'Gol', own_goal: 'Autogol', yellow: 'Žuti karton', red: 'Crveni karton' };
@@ -78,7 +79,7 @@ async function sectionMatches(ctx, body) {
             <label>Događaj<select name="type">${Object.entries(EVENT_TYPES).map(([k, v]) => `<option value="${k}">${v}</option>`).join('')}</select></label>
             <label>Minuta<input name="minute" type="number" min="0" max="200" value="${Math.min(200, Math.floor(matchElapsed(m) / 60) + 1)}"></label>
             <label>Asistencija<select name="assist">${playerOpts()}</select></label><button class="btn btn-sm" type="submit">Dodaj događaj</button>
-          </form><ul class="ev-list" data-events></ul></details>
+          </form><ul class="ev-list" data-events></ul></details><div data-lineup></div>
       </article>`).join('') : empty('Nema utakmica.')}</div>`;
 
   // Podrazumijevani datum: sljedeći sat
@@ -110,6 +111,7 @@ async function sectionMatches(ctx, body) {
       evList.querySelectorAll('[data-del]').forEach((b) => b.addEventListener('click', async () => { const { error } = await sb.from('match_events').delete().eq('id', b.dataset.del); if (error) return toastErr(error); sectionMatches(ctx, body); }));
     };
     loadEvents();
+    bindLineup(card.querySelector('[data-lineup]'), m, players, () => sectionMatches(ctx, body));
     card.querySelector('.ev-form').addEventListener('submit', async (e) => {
       e.preventDefault(); const f = new FormData(e.target); const playerId = f.get('player'); const player = players.find((p) => p.id === playerId);
       if (!player) { toast('Odaberi igrača.', 'err'); return; }
