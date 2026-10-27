@@ -2061,3 +2061,24 @@ tbody tr{transition:background .15s ease}
 .blocked-box summary{cursor:pointer;font-weight:600}
 .blocked-list{list-style:none;padding:0;margin:8px 0 0;display:grid;gap:6px}
 .blocked-list li{display:flex;justify-content:space-between;align-items:center;gap:8px}
+
+
+/* VISUAL AUDIT v34 — illustrated arena, richer sports identity, resilient responsive layout */
+.home-dashboard .home-visual{isolation:isolate;overflow:visible}
+.home-dashboard .home-visual::before{content:"";position:absolute;inset:2% -5% 0;z-index:-1;pointer-events:none;border-radius:50%;background:radial-gradient(ellipse at 50% 48%,rgba(80,225,132,.15),transparent 49%),radial-gradient(ellipse at 50% 8%,rgba(215,255,227,.14),transparent 8%),radial-gradient(ellipse at 12% 15%,rgba(215,255,227,.12),transparent 7%),radial-gradient(ellipse at 88% 15%,rgba(215,255,227,.12),transparent 7%),repeating-linear-gradient(180deg,transparent 0 18px,rgba(166,255,192,.035) 19px 20px,transparent 21px 31px);filter:blur(.2px);mask-image:radial-gradient(ellipse,#000 35%,transparent 76%)}
+.home-dashboard .home-visual::after{content:"";position:absolute;z-index:2;pointer-events:none;right:8%;top:9%;width:clamp(34px,5vw,54px);aspect-ratio:1;border-radius:50%;border:1px solid rgba(242,255,245,.8);background:radial-gradient(circle at 50% 50%,#18271e 0 14%,transparent 15%),conic-gradient(from 18deg at 50% 50%,#edf8ef 0 12%,#14271c 12% 17%,#edf8ef 17% 29%,#14271c 29% 34%,#edf8ef 34% 46%,#14271c 46% 51%,#edf8ef 51% 63%,#14271c 63% 68%,#edf8ef 68% 80%,#14271c 80% 85%,#edf8ef 85%);box-shadow:0 8px 22px rgba(0,0,0,.32),0 0 28px rgba(197,255,214,.2);transform:rotate(-13deg);opacity:.94}
+.home-dashboard .home-pitch{background:linear-gradient(135deg,rgba(24,104,59,.34),rgba(9,22,17,.8)),repeating-linear-gradient(90deg,rgba(88,220,129,.06) 0 26px,transparent 26px 52px);box-shadow:0 24px 55px rgba(0,0,0,.32),0 0 0 7px rgba(119,235,153,.035),0 0 65px rgba(34,197,94,.12),inset 0 0 50px rgba(88,220,129,.09)}
+.home-dashboard .home-pitch::after{content:"";position:absolute;inset:9%;border:1px solid rgba(151,255,183,.3);border-radius:8px;pointer-events:none}
+.home-dashboard .home-visual-orb{z-index:3;border-radius:50%;border-color:rgba(231,255,238,.56);background:radial-gradient(circle at 30% 24%,#c7ffda,#37c96b 38%,#126333 100%);color:#0b2a17;box-shadow:0 0 0 8px rgba(91,235,135,.08),0 14px 32px rgba(0,0,0,.3),0 0 48px rgba(34,197,94,.3)}
+.home-dashboard .home-floating-card{border-color:rgba(197,255,214,.2);box-shadow:0 18px 44px rgba(0,0,0,.34),inset 0 1px rgba(255,255,255,.05)}
+.home-dashboard .home-match-spotlight{border:1px solid rgba(190,255,209,.19);backdrop-filter:blur(18px)}
+.home-dashboard .home-hero{overflow:hidden}
+.home-dashboard .home-hero::after{content:"";position:absolute;pointer-events:none;inset:auto -15% -42% 30%;height:70%;border-radius:50%;background:radial-gradient(ellipse,rgba(34,197,94,.12),transparent 70%);}
+.home-dashboard .home-metric{position:relative;overflow:hidden;isolation:isolate}
+.home-dashboard .home-metric::after{content:"";position:absolute;inset:auto -25% -85% 35%;height:130%;z-index:-1;border-radius:50%;background:radial-gradient(ellipse,rgba(195,243,91,.14),transparent 70%);opacity:0;transition:opacity .2s ease}
+.home-dashboard .home-metric:hover::after{opacity:1}
+.home-dashboard .home-news-card{isolation:isolate}
+.home-dashboard .home-news-card>img{background:linear-gradient(135deg,#173b32,#718a5b);}
+@media(max-width:900px){.home-dashboard .home-visual::after{right:7%;top:10%;width:42px}.home-dashboard .home-visual::before{inset:4% -2% 0}}
+@media(max-width:640px){.home-dashboard .home-visual::after{right:9%;top:11%;width:34px}.home-dashboard .home-visual-orb{width:44px;border-radius:50%}.home-dashboard .home-pitch{transform:rotateY(-7deg) rotateX(3deg)}.home-dashboard .home-hero{overflow:hidden}}
+@media(prefers-reduced-motion:reduce){.home-dashboard .home-metric::after{transition:none}}
