@@ -2,3 +2,6 @@ project_id = "fmrypbvjaytecjinpsnp"
 
 [functions.remind-predictions]
 verify_jwt = false
+
+[functions.send-newsletter]
+verify_jwt = false

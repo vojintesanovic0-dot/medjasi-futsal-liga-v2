@@ -53,8 +53,15 @@ jobs:
         run: psql -h localhost -U postgres -d liga -v ON_ERROR_STOP=1 -f tests/sql/test.sql 2>&1 | tee out1.txt
       - name: Run v5 SQL tests
         run: psql -h localhost -U postgres -d liga -v ON_ERROR_STOP=1 -f tests/sql/test_v5.sql 2>&1 | tee out2.txt
+      - name: Apply v8 SQL features
+        run: psql -h localhost -U postgres -d liga -v ON_ERROR_STOP=1 -f supabase/features_v8.sql
+      - name: Verify v8 SQL is repeatable
+        run: psql -h localhost -U postgres -d liga -v ON_ERROR_STOP=1 -f supabase/features_v8.sql
+      - name: Run v8 SQL smoke tests
+        run: psql -h localhost -U postgres -d liga -v ON_ERROR_STOP=1 -f tests/sql/test_v8.sql 2>&1 | tee out3.txt
       - name: Confirm tests passed
         run: |
-          ! grep -q "FAIL:" out1.txt out2.txt
+          ! grep -q "FAIL:" out1.txt out2.txt out3.txt
           grep -q "PASS:" out1.txt
           grep -q "PASS:" out2.txt
+          grep -q "PASS:" out3.txt

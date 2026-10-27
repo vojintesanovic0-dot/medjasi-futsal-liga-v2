@@ -17,6 +17,12 @@ import { registerCommunity } from './pages/community.js';
 import { registerStats } from './pages/stats.js';
 import { registerSW } from './push.js';
 import { registerSearch } from './pages/search.js';
+import { registerPlayer } from './pages/player.js';
+import { registerArchive } from './pages/archive.js';
+import { registerApplications } from './pages/applications.js';
+import { registerPublicProfile } from './pages/profile-public.js';
+import { registerUnsubscribe } from './pages/unsubscribe.js';
+import { mountNewsletter } from './newsletter.js';
 import { initSeo } from './seo.js';
 
 registerHome(route);
@@ -32,6 +38,12 @@ registerFan(route);
 registerCommunity(route);
 registerStats(route);
 registerSearch(route);
+registerPlayer(route);
+registerArchive(route);
+registerApplications(route);
+registerPublicProfile(route);
+registerUnsubscribe(route);
+mountNewsletter(document.getElementById('newsletter'));
 registerSW();
 initSeo();
 
