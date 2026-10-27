@@ -1,4 +1,5 @@
 // Optional scheduled push reminder. Configure CRON_SECRET and VAPID_* secrets before use.
+// Devices with followed_only=true only receive reminders for matches involving a followed team.
 import { createClient } from 'npm:@supabase/supabase-js@2';
 import webpush from 'npm:web-push@3.6.7';
 
@@ -14,7 +15,14 @@ Deno.serve(async (req: Request) => {
   if (req.method === 'OPTIONS') return new Response('ok', { headers: corsHeaders });
   if (req.method !== 'POST') return json({ error: 'Method not allowed' }, 405);
   const cronSecret = Deno.env.get('CRON_SECRET');
-  if (!cronSecret || req.headers.get('x-cron-secret') !== cronSecret) return json({ error: 'forbidden' }, 403);
+  const given = req.headers.get('x-cron-secret') ?? '';
+  const safeEqual = (a: string, b: string) => {
+    if (a.length !== b.length) return false;
+    let diff = 0;
+    for (let i = 0; i < a.length; i++) diff |= a.charCodeAt(i) ^ b.charCodeAt(i);
+    return diff === 0;
+  };
+  if (!cronSecret || !safeEqual(given, cronSecret)) return json({ error: 'forbidden' }, 403);
 
   const url = Deno.env.get('SUPABASE_URL');
   const serviceKey = Deno.env.get('SUPABASE_SERVICE_ROLE_KEY');
@@ -33,7 +41,7 @@ Deno.serve(async (req: Request) => {
   const now = new Date();
   const inThreeHours = new Date(now.getTime() + 3 * 60 * 60 * 1000);
   const { data: matches, error: matchError } = await admin.from('matches')
-    .select('id,home:teams!matches_home_team_id_fkey(name),away:teams!matches_away_team_id_fkey(name)')
+    .select('id, home_team_id, away_team_id, home:teams!matches_home_team_id_fkey(name), away:teams!matches_away_team_id_fkey(name)')
     .eq('status', 'scheduled')
     .eq('reminder_sent', false)
     .gt('scheduled_at', now.toISOString())
@@ -42,7 +50,7 @@ Deno.serve(async (req: Request) => {
   if (!matches?.length) return json({ matches: 0, sent: 0, skipped: 0 });
 
   const { data: subscriptions, error: subError } = await admin.from('push_subscriptions')
-    .select('user_id,endpoint,p256dh,auth');
+    .select('user_id, endpoint, p256dh, auth, followed_only');
   if (subError) return json({ error: 'Could not load push subscriptions.' }, 500);
 
   let sent = 0;
@@ -53,6 +61,10 @@ Deno.serve(async (req: Request) => {
       .select('user_id').eq('match_id', match.id);
     if (predictionError) return json({ error: 'Could not load predictions.' }, 500);
     const havePredicted = new Set((predictions || []).map((prediction) => prediction.user_id));
+    const { data: follows, error: followError } = await admin.from('team_follows')
+      .select('user_id').in('team_id', [match.home_team_id, match.away_team_id]);
+    if (followError) return json({ error: 'Could not load team follows.' }, 500);
+    const followers = new Set((follows || []).map((f) => f.user_id));
     const payload = JSON.stringify({
       title: 'Pogodi rezultat',
       body: `${match.home?.name || 'Domaćin'} – ${match.away?.name || 'Gost'} počinje za manje od tri sata.`,
@@ -61,6 +73,7 @@ Deno.serve(async (req: Request) => {
 
     for (const subscription of subscriptions || []) {
       if (havePredicted.has(subscription.user_id)) { skipped++; continue; }
+      if (subscription.followed_only && !followers.has(subscription.user_id)) { skipped++; continue; }
       try {
         await webpush.sendNotification({
           endpoint: subscription.endpoint,
