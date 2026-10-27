@@ -1914,3 +1914,6 @@ main.wrap { max-width: 1320px; }
 #admin-body .row-gap{display:flex;flex-wrap:wrap;gap:8px}
 #admin-body .row-gap .btn{flex:1 1 auto}
 }
+
+/* Sastav, ocjene i zamjene */
+.rating{display:inline-block;min-width:34px;text-align:center;padding:2px 6px;border-radius:999px;font-weight:700;font-size:.85em;background:var(--line);margin-left:6px}.rating.good{background:rgba(34,197,94,.18);color:#16a34a}.rating.mid{background:rgba(234,179,8,.18);color:#a16207}.rating.low{background:rgba(239,68,68,.16);color:#dc2626}.subs{list-style:none;padding:0;margin:0}.subs li{display:flex;flex-wrap:wrap;gap:6px;align-items:center;padding:4px 0;border-bottom:1px solid var(--line)}.subs .out{color:#dc2626}.subs .in{color:#16a34a}.lu-teams{display:grid;gap:14px}@media(min-width:900px){.lu-teams{grid-template-columns:1fr 1fr}}.lu-table{width:100%;border-collapse:collapse;font-size:.9em}.lu-table th,.lu-table td{padding:4px 6px;border-bottom:1px solid var(--line);text-align:left}.lu-table select{min-width:90px}.lu-num{width:70px}.lu-sub-form{margin-top:10px}.lu-box{margin-top:12px}
