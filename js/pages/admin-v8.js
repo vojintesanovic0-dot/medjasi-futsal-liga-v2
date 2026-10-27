@@ -37,3 +37,21 @@ export async function sectionApplications(ctx, body) {
   ${rows.map(a=>`<article class="app-row" data-app="${esc(a.id)}"><div><strong>${esc(a.team_name)}</strong><span class="muted small"> · ${esc(labels[a.status]||a.status)}</span><div class="muted small">${esc(a.contact)}</div>${a.message?`<p class="small">${esc(a.message)}</p>`:''}</div>${a.status==='pending'?'<div class="row-actions"><button class="btn btn-xs btn-primary" data-status="approved">Odobri</button><button class="btn btn-xs btn-danger" data-status="rejected">Odbij</button></div>':''}</article>`).join('')||empty('Nema prijava.')}</div>`;
   body.querySelectorAll('[data-status]').forEach(b=>b.addEventListener('click',async()=>{const id=b.closest('[data-app]').dataset.app;const {error:err}=await sb.from('team_applications').update({status:b.dataset.status}).eq('id',id);if(err)return fail(err);toast('Status prijave ažuriran.');sectionApplications(ctx,body);}));
 }
+
+export async function sectionNewsletter(ctx, body) {
+  const {count,error}=await sb.from('newsletter_subscribers').select('email',{count:'exact',head:true}).is('unsubscribed_at',null);
+  if(!ctx.current())return;
+  if(error)return fail(error);
+  body.innerHTML=`<div class="card"><h3>E-mail obavještenja</h3><p class="muted">Aktivnih pretplatnika: <strong>${count??0}</strong></p>
+    <form id="nl-send" class="form"><label>Naslov<input name="subject" required minlength="2" maxlength="120"></label>
+    <label>Tekst poruke<textarea name="text" required minlength="2" maxlength="4000" rows="6"></textarea></label>
+    <button class="btn btn-primary" type="submit">Pošalji pretplatnicima</button></form><p id="nl-out" class="muted small" role="status" aria-live="polite"></p></div>`;
+  body.querySelector('#nl-send').addEventListener('submit',async e=>{
+    e.preventDefault();if(!confirm(`Poslati e-mail svim aktivnim pretplatnicima (${count??0})?`))return;
+    const form=e.currentTarget;const f=new FormData(form);const out=body.querySelector('#nl-out');const button=form.querySelector('button');button.disabled=true;out.textContent='Šaljem…';
+    try{const {data,error:invokeError}=await sb.functions.invoke('send-newsletter',{body:{subject:String(f.get('subject')).trim(),text:String(f.get('text')).trim()}});
+      if(invokeError||data?.error)throw invokeError||new Error(data.error);
+      out.textContent=`Završeno — uspješno: ${Number(data.sent)||0}, neuspješno: ${Number(data.failed)||0}, ukupno: ${Number(data.total)||0}.`;
+    }catch(err){out.textContent='Slanje nije uspjelo. Provjeri Edge Function i njene secrets.';fail(err);}finally{button.disabled=false;}
+  });
+}
