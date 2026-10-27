@@ -778,3 +778,63 @@ input::placeholder, textarea::placeholder { color: #68796f; opacity: 1; }
   .home-spotlight-pip { animation: none; }
   .home-spotlight-footer strong span { transition: none; }
 }
+
+/* ===== Premium interaction refinement: restrained, consistent, accessible ===== */
+:root {
+  --motion-quick: 140ms;
+  --motion-standard: 190ms;
+  --motion-emphasis: 260ms;
+  --motion-ease: cubic-bezier(.2,.7,.25,1);
+}
+html { scroll-behavior: smooth; }
+:where(a, button, .btn, input, select, textarea, summary, [role="button"]) {
+  -webkit-tap-highlight-color: transparent;
+}
+:where(button, .btn, [role="button"]) {
+  transition:
+    color var(--motion-quick) var(--motion-ease),
+    background-color var(--motion-quick) var(--motion-ease),
+    border-color var(--motion-quick) var(--motion-ease),
+    box-shadow var(--motion-standard) var(--motion-ease),
+    transform var(--motion-quick) var(--motion-ease);
+}
+:where(button, .btn, [role="button"]):active:not(:disabled) {
+  transform: translateY(1px);
+}
+:where(a, button, .btn, input, select, textarea, summary, [role="button"]):focus-visible {
+  outline: 2px solid rgba(134,239,172,.9);
+  outline-offset: 3px;
+}
+:where(.card, .match-card, .news-card, .team-tile, .pick-card, .post, .stat, .sponsor) {
+  transition:
+    border-color var(--motion-standard) var(--motion-ease),
+    box-shadow var(--motion-standard) var(--motion-ease),
+    background-color var(--motion-standard) var(--motion-ease),
+    transform var(--motion-standard) var(--motion-ease);
+}
+:where(.news-card, .team-tile, .match-card, .gallery figure, .sponsor):active {
+  transform: translateY(0);
+}
+:where(input, select, textarea) {
+  transition:
+    border-color var(--motion-quick) var(--motion-ease),
+    box-shadow var(--motion-quick) var(--motion-ease),
+    background-color var(--motion-quick) var(--motion-ease);
+}
+@media (hover: none) {
+  :where(.news-card, .team-tile, .match-card, .gallery figure, .sponsor):hover {
+    transform: none;
+  }
+}
+@media (prefers-reduced-motion: reduce) {
+  html { scroll-behavior: auto; }
+  *,
+  *::before,
+  *::after {
+    animation-duration: 0.01ms !important;
+    animation-iteration-count: 1 !important;
+    scroll-behavior: auto !important;
+    transition-duration: 0.01ms !important;
+    transition-delay: 0ms !important;
+  }
+}
