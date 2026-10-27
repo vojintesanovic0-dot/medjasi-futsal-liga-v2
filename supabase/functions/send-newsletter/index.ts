@@ -109,16 +109,27 @@ Deno.serve(async (req) => {
         headers: { Authorization: `Bearer ${resendKey}`, 'Content-Type': 'application/json' },
         body: JSON.stringify(payload),
       });
-      let result: { data?: Array<{ id?: string; error?: unknown }>; errors?: unknown[] } | null = null;
+      let result: {
+        data?: Array<{ id?: string }>;
+        errors?: Array<{ index?: number; message?: string }>;
+      } | null = null;
       try { result = await res.json(); } catch { /* Treat an unreadable response as a failed batch. */ }
       if (!res.ok || !result || !Array.isArray(result.data)) {
         failed += chunk.length;
         continue;
       }
-      const itemFailures = result.data.filter((item) => item?.error).length;
-      const accepted = Math.min(chunk.length, result.data.length);
-      sent += Math.max(0, accepted - itemFailures);
-      failed += chunk.length - Math.max(0, accepted - itemFailures);
+      // Resend batch errors identify the failed item by its zero-based index.
+      const errorIndexes = new Set(
+        (Array.isArray(result.errors) ? result.errors : [])
+          .map((item) => item?.index)
+          .filter((index): index is number => Number.isInteger(index) && index >= 0 && index < chunk.length),
+      );
+      let accepted = 0;
+      for (let index = 0; index < chunk.length; index++) {
+        if (!errorIndexes.has(index) && typeof result.data[index]?.id === 'string') accepted++;
+      }
+      sent += accepted;
+      failed += chunk.length - accepted;
     } catch {
       failed += chunk.length;
     }
