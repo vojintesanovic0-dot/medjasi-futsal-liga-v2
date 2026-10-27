@@ -61,6 +61,18 @@ sb.channel('liga-public')
   .subscribe();
 
 async function boot() {
+  // Mobilna "Više" lista: otvara/zatvara se dugmetom iz donje trake,
+  // zatvara se klikom van liste i pri promjeni stranice. Veže se prije baze.
+  const nav = document.getElementById('nav');
+  const moreBtn = document.getElementById('more-toggle');
+  const setMore = (open) => {
+    nav.classList.toggle('open', open);
+    moreBtn?.setAttribute('aria-expanded', String(open));
+  };
+  moreBtn?.addEventListener('click', () => setMore(!nav.classList.contains('open')));
+  nav.addEventListener('click', (e) => { if (e.target === nav) setMore(false); });
+  window.addEventListener('hashchange', () => setMore(false));
+
   await initAuth();
   renderNavUser();
   onAuthChange((_st, event) => {
