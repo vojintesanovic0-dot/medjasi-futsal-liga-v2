@@ -1,5 +1,5 @@
 // Service worker: offline ljuska (network-first) + web push obavještenja.
-const CACHE = 'medjasi-v2-cache-v26';
+const CACHE = 'medjasi-v2-cache-v27';
 const SHELL = ['./', 'index.html', 'privatnost.html', 'sitemap.xml', 'robots.txt', 'css/style.css?v=25', 'js/app.js', 'js/pages/home.js', 'js/pages/stats.js', 'js/pages/search.js', 'js/seo.js', 'js/match-extras.js', 'js/pages/admin-news.js', 'js/pages/admin-extra.js', 'js/pages/admin.js', 'js/newsletter.js', 'js/pages/unsubscribe.js', 'manifest.json'];
 
 self.addEventListener('install', (e) => {
