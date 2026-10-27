@@ -5,10 +5,16 @@
 import { createClient } from 'npm:@supabase/supabase-js@2';
 import webpush from 'npm:web-push@3.6.7';
 
+const corsHeaders = {
+  'Access-Control-Allow-Origin': '*',
+  'Access-Control-Allow-Headers': 'authorization, x-client-info, apikey, content-type',
+  'Access-Control-Allow-Methods': 'POST, OPTIONS',
+};
 const json = (body: unknown, status = 200) =>
-  new Response(JSON.stringify(body), { status, headers: { 'Content-Type': 'application/json' } });
+  new Response(JSON.stringify(body), { status, headers: { ...corsHeaders, 'Content-Type': 'application/json' } });
 
 Deno.serve(async (req) => {
+  if (req.method === 'OPTIONS') return new Response('ok', { headers: corsHeaders });
   if (req.method !== 'POST') return json({ error: 'Method not allowed' }, 405);
 
   const url = Deno.env.get('SUPABASE_URL')!;
@@ -38,7 +44,7 @@ Deno.serve(async (req) => {
     Deno.env.get('VAPID_PUBLIC_KEY')!,
     Deno.env.get('VAPID_PRIVATE_KEY')!,
   );
-  const admin = createClient(url, service);
+  const admin = createClient(url, service, { auth: { persistSession: false, autoRefreshToken: false } });
   const { data: allSubs, error } = await admin.from('push_subscriptions').select('id, user_id, endpoint, p256dh, auth, followed_only');
   if (error) return json({ error: error.message }, 500);
   let followers = new Set<string>();
@@ -51,7 +57,7 @@ Deno.serve(async (req) => {
 
   let sent = 0;
   const gone: string[] = [];
-  await Promise.all((subs ?? []).map(async (s) => {
+  await Promise.all(subs.map(async (s) => {
     try {
       await webpush.sendNotification(
         { endpoint: s.endpoint, keys: { p256dh: s.p256dh, auth: s.auth } },
