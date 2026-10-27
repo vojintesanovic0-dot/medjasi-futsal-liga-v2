@@ -1253,3 +1253,16 @@ hr, .divider { border-color: var(--line); }
   .block { margin-top: 27px; }
   .card { border-radius: 15px; }
 }
+
+
+/* Consistent inline icon alignment and compact status labels. */
+.btn svg, .chip svg, .home-metric-icon svg, .home-float-symbol svg,
+.post-actions svg, .post-del svg, .g-del svg, .match-actions svg,
+.stats-explainer-icon svg { display: inline-block; flex: 0 0 auto; vertical-align: -0.18em; }
+.btn, .file-btn, .post-actions button { align-items: center; gap: 8px; }
+.fan-badge { display: inline-flex; align-items: center; margin: 3px 4px 3px 0; padding: 4px 8px; border-radius: 7px; border: 1px solid rgba(101,230,154,.18); background: rgba(101,230,154,.07); color: #a4f3c1; font-size: .68rem; font-weight: 800; letter-spacing: .035em; }
+.fan-badge-lider { border-color: rgba(239,194,91,.24); background: rgba(239,194,91,.08); color: #f0cf80; }
+.fan-badge-snajper { border-color: rgba(122,183,255,.24); background: rgba(122,183,255,.08); color: #9bcaff; }
+.post-actions .like-btn { color: #c5d0d8; }
+.post-actions .like-btn.on { color: #ff8295; border-color: rgba(255,130,149,.3); background: rgba(255,130,149,.08); }
+.post-actions button:disabled { opacity: .45; }
