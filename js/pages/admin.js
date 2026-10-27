@@ -211,14 +211,39 @@ async function sectionNewsletter(ctx, body) {
         <form id="newsletter-send-form" class="form">
           <label>Naslov e-maila<input name="subject" maxlength="120" minlength="2" required placeholder="Npr. Novo kolo i rezultati"></label>
           <label>Tekst poruke<textarea name="text" rows="8" minlength="2" maxlength="4000" required placeholder="Napiši obavještenje za navijače…"></textarea></label>
-          <p class="muted small">Poruka se šalje preko Resenda. Provjeri naslov i tekst prije slanja; slanje se ne može opozvati.</p>
-          <button class="btn btn-primary" type="submit" ${Number(count || 0) === 0 ? 'disabled' : ''}>Pošalji newsletter</button>
+          <p class="muted small">Prvo koristi test da provjeriš postavke. Test se šalje samo na e-mail prijavljenog administratora. Dugme za newsletter šalje svim aktivnim pretplatnicima.</p>
+          <div class="row-gap">
+            <button class="btn" type="button" id="newsletter-test-send">Pošalji test meni</button>
+            <button class="btn btn-primary" type="submit" ${Number(count || 0) === 0 ? 'disabled' : ''}>Pošalji newsletter</button>
+          </div>
           <p id="newsletter-send-status" class="small" role="status" aria-live="polite"></p>
         </form>
       </section>`;
   }
   const form = body.querySelector('#newsletter-send-form');
   if (!form) return;
+  const testButton = form.querySelector('#newsletter-test-send');
+  testButton?.addEventListener('click', async () => {
+    const subject = String(new FormData(form).get('subject') || '').trim();
+    const text = String(new FormData(form).get('text') || '').trim();
+    if (subject.length < 2 || text.length < 2) return toast('Unesi naslov i tekst poruke za test.', 'err');
+    if (!confirm('Poslati testnu poruku samo na e-mail adresu tvog administratorskog naloga? Lista pretplatnika neće dobiti ovu poruku.')) return;
+    const status = form.querySelector('#newsletter-send-status');
+    testButton.disabled = true;
+    status.textContent = 'Šaljem test samo na administratorski e-mail…';
+    try {
+      const { data, error } = await sb.functions.invoke('send-newsletter', { body: { subject, text, testOnly: true } });
+      if (error) throw error;
+      if (!data?.test || data.sent !== 1 || data.failed !== 0) throw new Error(data?.error || 'Server nije potvrdio testno slanje.');
+      status.textContent = `Test je predat Resendu za ${data.recipient}. Provjeri Inbox i Spam.`;
+      toast('Testna poruka je predata Resendu.');
+    } catch (error) {
+      status.textContent = error?.message || 'Test nije uspio. Provjeri Resend i Supabase postavke.';
+      toast('Testna poruka nije poslana.', 'err');
+    } finally {
+      testButton.disabled = false;
+    }
+  });
   form.addEventListener('submit', async (e) => {
     e.preventDefault();
     const subject = String(new FormData(form).get('subject') || '').trim();
