@@ -1,6 +1,6 @@
 // Service worker: offline ljuska (network-first) + web push obavještenja.
-const CACHE = 'medjasi-v2-cache-v36';
-const SHELL = ['./', 'index.html', 'privatnost.html', 'sitemap.xml', 'robots.txt', 'css/style.css?v=36', 'js/app.js?v=4', 'js/pages/home.js', 'js/pages/stats.js', 'js/pages/search.js', 'js/seo.js', 'js/match-extras.js', 'js/pages/admin-news.js', 'js/pages/admin-extra.js', 'js/pages/admin.js', 'js/newsletter.js', 'js/lineups.js', 'js/pages/admin-lineup.js', 'js/pages/player.js', 'js/pages/apply.js', 'js/pages/admin-applications.js', 'js/pages/admin-sponsors.js', 'js/sponsors.js', 'js/polls.js', 'js/pages/admin-polls.js', 'js/pages/admin-push.js', 'js/pages/unsubscribe.js', 'manifest.json'];
+const CACHE = 'medjasi-v2-cache-v37';
+const SHELL = ['./', 'index.html', 'privatnost.html', 'sitemap.xml', 'robots.txt', 'css/style.css?v=37', 'css/mobile-app.css?v=1', 'js/app.js?v=4', 'js/pages/home.js', 'js/pages/stats.js', 'js/pages/search.js', 'js/seo.js', 'js/match-extras.js', 'js/pages/admin-news.js', 'js/pages/admin-extra.js', 'js/pages/admin.js', 'js/newsletter.js', 'js/lineups.js', 'js/pages/admin-lineup.js', 'js/pages/player.js', 'js/pages/apply.js', 'js/pages/admin-applications.js', 'js/pages/admin-sponsors.js', 'js/sponsors.js', 'js/polls.js', 'js/pages/admin-polls.js', 'js/pages/admin-push.js', 'js/pages/unsubscribe.js', 'manifest.json'];
 
 self.addEventListener('install', (e) => {
   e.waitUntil(caches.open(CACHE).then((c) => c.addAll(SHELL)).then(() => self.skipWaiting()));
