@@ -23,3 +23,10 @@ Push notifications remain optional until valid VAPID keys have been securely con
 - Set `VAPID_SUBJECT`, `VAPID_PUBLIC_KEY`, `VAPID_PRIVATE_KEY`, and `CRON_SECRET` in Supabase Edge Function Secrets. Put only the public VAPID key in `js/config.js`; never commit private keys or cron secrets.
 - For recurring invocations use `pg_cron` and `pg_net`, storing the call secret in Supabase Vault rather than hardcoding it in a SQL file.
 - The legal/privacy page contains placeholders and is not a finalized legal notice.
+
+## Newsletter
+
+- Apply `supabase/migrations/20261027_newsletter.sql` to an existing database; for a fresh database, `supabase/schema.sql` includes the same objects.
+- Configure Supabase Edge Function secrets: `RESEND_API_KEY`, `NEWSLETTER_FROM` (a sender on a verified Resend domain), and `SITE_URL` (for example, `https://vojintesanovic0-dot.github.io/medjasi-futsal-liga-v2/`).
+- Deploy with `supabase functions deploy send-newsletter`.
+- Newsletter email delivery is not active until the migration, function deployment, and secrets are configured.
