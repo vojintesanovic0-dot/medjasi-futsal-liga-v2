@@ -18,6 +18,8 @@ import { registerStats } from './pages/stats.js';
 import { registerSW } from './push.js';
 import { registerSearch } from './pages/search.js';
 import { initSeo } from './seo.js';
+import { registerUnsubscribe } from './pages/unsubscribe.js';
+import { mountNewsletter } from './newsletter.js';
 
 registerHome(route);
 registerStandings(route);
@@ -32,6 +34,8 @@ registerFan(route);
 registerCommunity(route);
 registerStats(route);
 registerSearch(route);
+registerUnsubscribe(route);
+mountNewsletter(document.getElementById('newsletter'));
 registerSW();
 initSeo();
 
