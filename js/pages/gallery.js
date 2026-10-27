@@ -7,7 +7,7 @@ const MAX_BYTES = 15 * 1024 * 1024;
 function item(g) {
   const url = safeUrl(g.media_url);
   if (!url) return '';
-  const del = isStaff() ? `<button class="btn btn-ghost btn-sm g-del" data-del="${esc(g.id)}" aria-label="Obriši">🗑</button>` : '';
+  const del = isStaff() ? `<button class="btn btn-ghost btn-sm g-del" data-del="${esc(g.id)}" aria-label="Obriši"><svg viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M4 7h16M9 7V4h6v3m-9 0 1 13h8l1-13M10 11v5m4-5v5"/></svg></button>` : '';
   const media = g.media_type === 'video' ? `<video src="${esc(url)}" controls preload="metadata"></video>` : `<a href="${esc(url)}" target="_blank" rel="noopener"><img src="${esc(url)}" alt="${esc(g.title || 'Fotografija')}" loading="lazy"></a>`;
   return `<figure data-id="${esc(g.id)}">${media}${g.title || del ? `<figcaption><span>${esc(g.title || '')}</span>${del}</figcaption>` : ''}</figure>`;
 }
