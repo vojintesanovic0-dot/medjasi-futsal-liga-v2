@@ -1,6 +1,6 @@
 import { sb } from '../supabase.js';
 import { state, isStaff, isAdmin } from '../state.js';
-import { getActiveSeason, getSeasons, getTeams, getPlayers, getMatches, getEvents, getAllNews, getGallery } from '../api.js';
+import { getActiveSeason, getSeasons, getTeams, getPlayers, getMatches, getEvents, getGallery } from '../api.js';
 import { esc, toast, errMsg, empty, matchElapsed, mmss, toLocalInput, fromLocalInput, slugify, STATUS_LABEL, safeColor } from '../util.js';
 import { badge } from '../components.js';
 import { sectionNews2 } from './admin-news.js';
@@ -153,26 +153,6 @@ async function sectionSeasons(ctx, body) {
     const { error: e2 } = await sb.from('seasons').update({ is_active: true }).eq('id', b.dataset.activate); if (e2) return toastErr(e2);
     toast('Aktivna sezona promijenjena.'); sectionSeasons(ctx, body);
   }));
-}
-
-/* ---------- Vijesti ---------- */
-async function sectionNews(ctx, body) {
-  const news = await getAllNews(); if (!ctx.current()) return;
-  const draw = (n = {}) => `<form id="news-form" class="card form" data-id="${esc(n.id || '')}"><h3>${n.id ? 'Izmijeni vijest' : 'Nova vijest'}</h3><label>Naslov<input name="title" required maxlength="160" value="${esc(n.title || '')}"></label><label>Kratki opis<input name="excerpt" maxlength="240" value="${esc(n.excerpt || '')}"></label><label>Tekst<textarea name="body" rows="8" required>${esc(n.body || '')}</textarea></label><label>Naslovna slika (URL)<input name="cover_url" type="url" value="${esc(n.cover_url || '')}"></label><label class="check"><input name="published" type="checkbox" ${n.published ? 'checked' : ''}> Objavi odmah</label><div class="row-gap"><button class="btn btn-primary" type="submit">Sačuvaj</button>${n.id ? '<button class="btn btn-ghost" type="button" id="news-new">Nova vijest</button>' : ''}</div></form>`;
-  body.innerHTML = `<div class="two-col-admin"><div>${draw()}</div><div class="card"><h3>Sve vijesti</h3><ul class="plain">${news.map((n) => `<li><button class="link" data-edit="${esc(n.id)}">${esc(n.title)}</button><span class="pill ${n.published ? 'pill-finished' : ''}">${n.published ? 'objavljena' : 'skica'}</span></li>`).join('') || '<li class="muted">Nema vijesti.</li>'}</ul></div></div>`;
-  const bindForm = () => {
-    body.querySelector('#news-form').addEventListener('submit', async (e) => {
-      e.preventDefault(); const f = new FormData(e.target); const id = e.target.dataset.id; const published = f.get('published') === 'on';
-      const row = { title: String(f.get('title')).trim(), excerpt: String(f.get('excerpt') || '').trim() || null, body: String(f.get('body')), cover_url: String(f.get('cover_url') || '').trim() || null, published, updated_at: new Date().toISOString() };
-      let error;
-      if (id) ({ error } = await sb.from('news').update(row).eq('id', id));
-      else { row.slug = `${slugify(row.title)}-${Date.now().toString(36)}`; row.author_id = state.session.user.id; if (published) row.published_at = new Date().toISOString(); ({ error } = await sb.from('news').insert(row)); }
-      if (error) return toastErr(error); toast('Vijest sačuvana.'); sectionNews(ctx, body);
-    });
-    body.querySelector('#news-new')?.addEventListener('click', () => sectionNews(ctx, body));
-  };
-  bindForm();
-  body.querySelectorAll('[data-edit]').forEach((b) => b.addEventListener('click', () => { const n = news.find((x) => x.id === b.dataset.edit); body.querySelector('#news-form').outerHTML = draw(n); bindForm(); }));
 }
 
 /* ---------- Galerija ---------- */
