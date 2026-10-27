@@ -838,3 +838,12 @@ html { scroll-behavior: smooth; }
     transition-delay: 0ms !important;
   }
 }
+
+/* Premium art direction: keep motion for meaning, not decoration */
+.hero::after { animation: none; }
+.home-dashboard .home-float-top,
+.home-dashboard .home-float-bottom,
+.home-dashboard .home-match-spotlight { animation: none; }
+:where(.news-card, .team-tile, .match-card, .gallery figure, .sponsor):active:hover {
+  transform: translateY(0);
+}
