@@ -18,3 +18,9 @@ select pg_temp.v8_assert('match notes staff write policy exists',exists(select 1
 select pg_temp.v8_assert('newsletter subscribe function exists',to_regprocedure('public.subscribe_newsletter(text)') is not null);
 select pg_temp.v8_assert('anon cannot insert newsletter rows directly',not exists(select 1 from information_schema.role_table_grants where table_schema='public' and table_name='newsletter_subscribers' and grantee='anon' and privilege_type='INSERT'));
 select pg_temp.v8_assert('newsletter subscribe execute granted to anon',exists(select 1 from information_schema.routine_privileges where specific_schema='public' and routine_name='subscribe_newsletter' and grantee='anon' and privilege_type='EXECUTE'));
+
+select pg_temp.v8_assert('newsletter rejects invalid address',public.subscribe_newsletter('not-an-email') is false);
+select pg_temp.v8_assert('newsletter accepts valid address',public.subscribe_newsletter('v8-test@example.com') is true);
+select pg_temp.v8_assert('newsletter stores normalized address',exists(select 1 from public.newsletter_subscribers where email='v8-test@example.com' and unsubscribed_at is null));
+select pg_temp.v8_assert('newsletter unsubscribe token works',public.unsubscribe_newsletter((select token from public.newsletter_subscribers where email='v8-test@example.com')) is true);
+select pg_temp.v8_assert('newsletter re-subscription reactivates address',public.subscribe_newsletter(' V8-Test@Example.com ') is true and exists(select 1 from public.newsletter_subscribers where email='v8-test@example.com' and unsubscribed_at is null));
