@@ -309,6 +309,14 @@ body {
   .nav.open a.active { border-color: rgba(34,197,94,.16); }
   .nav-user { margin-left: 0; }
 }
+
+/* Desktop/tablet: reset any mobile dropdown state when returning to web layout. */
+@media (min-width: 641px) {
+  .burger { display: none; }
+  .nav { display: flex; flex-direction: row; width: auto; order: initial; padding-bottom: 0; overflow-x: auto; }
+  .nav.open { gap: 4px; margin: 0; padding: 0; border: 0; border-radius: 0; background: transparent; box-shadow: none; }
+  .nav.open a { border: 1px solid transparent; padding: 8px 10px; }
+}
 .btn {
   border-color: rgba(151,171,157,.19);
   box-shadow: 0 2px 8px rgba(0,0,0,.08);
