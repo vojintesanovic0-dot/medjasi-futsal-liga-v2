@@ -1016,13 +1016,12 @@ revoke all on function public.audit_row() from public, anon, authenticated;
 revoke all on function public.validate_mvp_vote() from public, anon, authenticated;
 
 -- Newsletter: kept in sync with migrations/20261027_newsletter.sql
--- Newsletter subscribers, token-based unsubscribe and admin-only listing.
+-- Newsletter subscribers with explicit consent, token-based unsubscribe and admin-only listing.
 create table if not exists public.newsletter_subscribers (
-  id uuid primary key default gen_random_uuid(),
-  email text not null unique
+  email text primary key
     check (email = lower(email) and char_length(email) between 5 and 200),
   token uuid not null unique default gen_random_uuid(),
-  created_at timestamptz not null default now(),
+  consent_at timestamptz not null default now(),
   unsubscribed_at timestamptz
 );
 
@@ -1039,11 +1038,12 @@ returns boolean language plpgsql security definer set search_path = public, pg_t
 declare
   e text := lower(trim(coalesce(p_email, '')));
 begin
-  if char_length(e) < 5 or char_length(e) > 200 or e !~ '^[^@\s]+@[^@\s]+\.[^@\s]+$' then
+  if char_length(e) < 5 or char_length(e) > 200 or e !~ '^[^@[:space:]]+@[^@[:space:]]+[.][^@[:space:]]+$' then
     return false;
   end if;
   insert into public.newsletter_subscribers (email) values (e)
-  on conflict (email) do update set unsubscribed_at = null
+  on conflict (email) do update
+    set token = gen_random_uuid(), consent_at = now(), unsubscribed_at = null
     where public.newsletter_subscribers.unsubscribed_at is not null;
   return true;
 end $$;
@@ -1051,9 +1051,10 @@ end $$;
 create or replace function public.unsubscribe_newsletter(p_token uuid)
 returns boolean language plpgsql security definer set search_path = public, pg_temp as $$
 begin
+  if p_token is null then return false; end if;
   update public.newsletter_subscribers
-     set unsubscribed_at = now()
-   where token = p_token and unsubscribed_at is null;
+     set unsubscribed_at = coalesce(unsubscribed_at, now())
+   where token = p_token;
   return found;
 end $$;
 
