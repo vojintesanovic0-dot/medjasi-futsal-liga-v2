@@ -83,3 +83,8 @@ export const saveSubscription = (userId, sub) => unwrap(sb.from('push_subscripti
   p256dh: sub.keys.p256dh, auth: sub.keys.auth,
 }, { onConflict: 'endpoint' }).select());
 export const removeSubscription = (endpoint) => unwrap(sb.from('push_subscriptions').delete().eq('endpoint', endpoint));
+
+// Sastavi, zamjene i ocjene po utakmici.
+export const getMatchPlayers = (matchId) => unwrap(sb.from('match_players').select('match_id,player_id,team_id,is_starter,player:players(id,first_name,last_name,number,position,is_captain)').eq('match_id', matchId));
+export const getSubstitutions = (matchId) => unwrap(sb.from('match_substitutions').select('id,match_id,team_id,minute,player_out_id,player_in_id,out:players!match_substitutions_player_out_id_fkey(id,first_name,last_name,number),in:players!match_substitutions_player_in_id_fkey(id,first_name,last_name,number)').eq('match_id', matchId).order('minute'));
+export const getMatchPlayerStats = (matchId) => unwrap(sb.from('match_player_stats').select('match_id,player_id,team_id,rating,saves').eq('match_id', matchId));
