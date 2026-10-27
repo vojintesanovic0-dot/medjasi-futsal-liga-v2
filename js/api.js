@@ -88,3 +88,12 @@ export const removeSubscription = (endpoint) => unwrap(sb.from('push_subscriptio
 export const getMatchPlayers = (matchId) => unwrap(sb.from('match_players').select('match_id,player_id,team_id,is_starter,player:players(id,first_name,last_name,number,position,is_captain)').eq('match_id', matchId));
 export const getSubstitutions = (matchId) => unwrap(sb.from('match_substitutions').select('id,match_id,team_id,minute,player_out_id,player_in_id,out:players!match_substitutions_player_out_id_fkey(id,first_name,last_name,number),in:players!match_substitutions_player_in_id_fkey(id,first_name,last_name,number)').eq('match_id', matchId).order('minute'));
 export const getMatchPlayerStats = (matchId) => unwrap(sb.from('match_player_stats').select('match_id,player_id,team_id,rating,saves').eq('match_id', matchId));
+
+export const getPlayer = id => unwrap(sb.from('players').select('*, team:teams(id,name,short_name,color,logo_url)').eq('id',id).maybeSingle());
+export const getPlayerSeasonStats = id => unwrap(sb.from('player_stats').select('*').eq('player_id',id).maybeSingle());
+export const getPlayerMatchRows = id => unwrap(sb.from('match_players').select(`is_starter,match_id,match:matches(id,round,status,scheduled_at,home_score,away_score,home_team_id,away_team_id,home:teams!matches_home_team_id_fkey(id,name,short_name),away:teams!matches_away_team_id_fkey(id,name,short_name))`).eq('player_id',id));
+export const getPlayerMatchStats = id => unwrap(sb.from('match_player_stats').select('match_id,rating,saves').eq('player_id',id));
+export const getPlayerEvents = id => unwrap(sb.from('match_events').select('match_id,type,minute,player_id,assist_id').or(`player_id.eq.${id},assist_id.eq.${id}`));
+export const getMyTeamApplications = userId => unwrap(sb.from('team_applications').select('*').eq('user_id',userId).order('created_at',{ascending:false}));
+export const createTeamApplication = row => unwrap(sb.from('team_applications').insert(row).select().single());
+export const getAllTeamApplications = () => unwrap(sb.from('team_applications').select('*').order('created_at',{ascending:false}));
