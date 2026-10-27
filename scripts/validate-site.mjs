@@ -54,9 +54,28 @@ for (const ref of index.matchAll(/(?:src|href)="([^"]+)"/g)) {
   }
 }
 const sql = fs.readFileSync(path.join(root, 'supabase/schema.sql'), 'utf8');
-for (const table of ['profiles', 'seasons', 'teams', 'players', 'matches', 'match_events', 'news', 'gallery', 'messages', 'fan_predictions', 'posts', 'post_comments', 'post_likes', 'push_subscriptions', 'admin_audit', 'reports', 'user_warnings', 'mvp_votes', 'match_comments']) {
+for (const table of ['profiles', 'seasons', 'teams', 'players', 'matches', 'match_events', 'news', 'gallery', 'messages', 'fan_predictions', 'newsletter_subscribers', 'posts', 'post_comments', 'post_likes', 'push_subscriptions', 'admin_audit', 'reports', 'user_warnings', 'mvp_votes', 'match_comments']) {
   if (!new RegExp(`create table if not exists public\\.${table}\\b`, 'i').test(sql)) fail.push(`SQL schema missing table declaration: ${table}`);
 }
+// Verify frontend data calls against schema.sql and all migrations / Edge Functions.
+const sqlAll = [sql, ...fs.readdirSync(path.join(root, 'supabase/migrations'))
+  .filter((f) => f.endsWith('.sql'))
+  .map((f) => fs.readFileSync(path.join(root, 'supabase/migrations', f), 'utf8'))].join('\n');
+const frontendCode = sourceFiles.filter((f) => /\.(?:js|mjs)$/.test(f) && f.includes(`${path.sep}js${path.sep}`))
+  .map((f) => fs.readFileSync(f, 'utf8')).join('\n');
+const referencedTables = new Set([...frontendCode.matchAll(/(?<!storage)\.from\(\s*['"]([a-z_]+)['"]\s*\)/g)].map((m) => m[1]));
+for (const table of referencedTables) {
+  if (!new RegExp(`create\\s+(?:table|(?:or\\s+replace\\s+)?view)\\s+(?:if\\s+not\\s+exists\\s+)?(?:public\\.)?${table}\\b`, 'i').test(sqlAll)) {
+    fail.push(`Frontend uses table/view not declared in SQL: ${table}`);
+  }
+}
+for (const [, rpc] of frontendCode.matchAll(/\.rpc\(\s*['"]([a-z_0-9]+)['"]/g)) {
+  if (!new RegExp(`function\\s+(?:public\\.)?${rpc}\\s*\\(`, 'i').test(sqlAll)) fail.push(`Frontend calls RPC not defined in SQL: ${rpc}`);
+}
+for (const [, fn] of frontendCode.matchAll(/\.functions\.invoke\(\s*['"]([a-z-]+)['"]/g)) {
+  if (!fs.existsSync(path.join(root, 'supabase/functions', fn, 'index.ts'))) fail.push(`Frontend invokes missing edge function: ${fn}`);
+}
+
 const sitemapPath = path.join(root, 'sitemap.xml');
 const robotsPath = path.join(root, 'robots.txt');
 if (!fs.existsSync(sitemapPath)) fail.push('Missing sitemap.xml.');
