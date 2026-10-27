@@ -911,3 +911,43 @@ html { scroll-behavior: smooth; }
   .home-pitch { width: 82%; transform: none; }
   .home-visual-orb { transform: none; }
 }
+
+
+/* ===== Premium surface consistency: homepage, stats, team and match details ===== */
+.stats-hero {
+  background: linear-gradient(118deg, #111719 0%, #101715 58%, #131a17 100%);
+  border-color: rgba(145,190,157,.2);
+  box-shadow: 0 14px 36px rgba(0,0,0,.18), inset 0 1px rgba(255,255,255,.02);
+}
+.stats-hero::before {
+  opacity: .08;
+  background-size: 44px 44px;
+}
+.stats-hero-mark {
+  transform: none;
+  border-radius: 20px;
+  background: rgba(34,197,94,.045);
+}
+.stats-explainer {
+  background: linear-gradient(135deg, rgba(255,255,255,.025), transparent 58%), var(--card);
+}
+.team-hero {
+  background: linear-gradient(115deg, rgba(255,255,255,.025), transparent 68%), var(--card);
+  box-shadow: 0 10px 26px rgba(0,0,0,.12);
+}
+.match-hero {
+  background: linear-gradient(145deg, rgba(255,255,255,.025), transparent 58%), var(--card);
+  box-shadow: 0 14px 36px rgba(0,0,0,.16);
+}
+.match-hero::before {
+  opacity: .07;
+}
+.auth-card {
+  background: linear-gradient(135deg, rgba(255,255,255,.025), transparent 58%), var(--card);
+  border-color: rgba(157,178,164,.16);
+  box-shadow: 0 14px 36px rgba(0,0,0,.18);
+}
+@media (max-width: 640px) {
+  .stats-hero-mark { border-radius: 15px; }
+  .team-hero { align-items: flex-start; }
+}
