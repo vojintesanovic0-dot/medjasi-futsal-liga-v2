@@ -1176,10 +1176,10 @@ h2, h3 { letter-spacing: -.035em; text-wrap: balance; }
   box-shadow: 0 7px 22px rgba(52, 211, 112, .15);
 }
 .btn-primary:hover { background: linear-gradient(135deg, #a4f3c1, #65e69a); box-shadow: 0 9px 28px rgba(52, 211, 112, .22); }
-.btn:not(.btn-primary), .btn-ghost {
+.btn:not(.btn-primary):not(.btn-danger), .btn-ghost {
   border-color: rgba(195, 215, 229, .15); background: rgba(255, 255, 255, .035); color: var(--text);
 }
-.btn:not(.btn-primary):hover, .btn-ghost:hover { border-color: rgba(101, 230, 154, .35); background: rgba(101, 230, 154, .07); }
+.btn:not(.btn-primary):not(.btn-danger):hover, .btn-ghost:hover { border-color: rgba(101, 230, 154, .35); background: rgba(101, 230, 154, .07); }
 input, select, textarea {
   color: var(--text); background: #0c1218; border-color: rgba(195, 215, 229, .17);
   border-radius: 11px; accent-color: var(--accent);
