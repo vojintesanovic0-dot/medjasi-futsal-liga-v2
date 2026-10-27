@@ -47,6 +47,7 @@ export async function bindLineup(slot, match, players, refresh) {
       if (picked.some((p) => p.team_id === id && p.rating !== null && (!Number.isFinite(p.rating) || p.rating < 1 || p.rating > 10))) return toast('Ocjena mora biti između 1 i 10.', 'err');
       if (picked.some((p) => p.team_id === id && (!Number.isInteger(p.saves) || p.saves < 0 || p.saves > 99))) return toast('Odbrane moraju biti cijeli broj od 0 do 99.', 'err');
     }
+    if (picked.some((p) => !p.role && (p.rating !== null || p.saves > 0)) && !confirm('Ocjene i odbrane za igrače koji nisu u sastavu neće biti snimljene. Nastaviti?')) return;
     const lineup = picked.filter((p) => p.role), lineupIds = new Set(lineup.map((p) => p.player_id));
     const starters = new Set(lineup.filter((p) => p.role === 'start').map((p) => p.player_id));
     const bench = new Set(lineup.filter((p) => p.role === 'bench').map((p) => p.player_id));
