@@ -57,7 +57,7 @@ export async function bindLineup(slot, match, players, refresh) {
       const removed = mp.map((r) => r.player_id).filter((id) => !lineupIds.has(id));
       if (removed.length) { const { error } = await sb.from('match_players').delete().eq('match_id', match.id).in('player_id', removed); if (error) throw error; }
       if (lineup.length) { const { error } = await sb.from('match_players').upsert(lineup.map((p) => ({ match_id: match.id, player_id: p.player_id, team_id: p.team_id, is_starter: p.role === 'start' })), { onConflict: 'match_id,player_id' }); if (error) throw error; }
-      const withStats = picked.filter((p) => p.rating !== null || p.saves > 0), noStats = picked.filter((p) => p.rating === null && p.saves === 0).map((p) => p.player_id);
+      const withStats = picked.filter((p) => p.role && (p.rating !== null || p.saves > 0)), noStats = picked.filter((p) => !p.role || (p.rating === null && p.saves === 0)).map((p) => p.player_id);
       if (noStats.length) { const { error } = await sb.from('match_player_stats').delete().eq('match_id', match.id).in('player_id', noStats); if (error) throw error; }
       if (withStats.length) { const { error } = await sb.from('match_player_stats').upsert(withStats.map((p) => ({ match_id: match.id, player_id: p.player_id, team_id: p.team_id, rating: p.rating, saves: p.saves })), { onConflict: 'match_id,player_id' }); if (error) throw error; }
       toast('Sastav i ocjene su snimljeni.'); refresh();
