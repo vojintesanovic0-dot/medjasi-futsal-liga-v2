@@ -20,6 +20,7 @@ const SECTIONS = {
   kolo: { label: 'Generator kola', roles: ['admin'], render: sectionGenerator },
   prijave: { label: 'Prijave', roles: ['admin', 'editor'], render: sectionReports },
   izmjene: { label: 'Istorija izmjena', roles: ['admin'], render: sectionAudit },
+  newsletter: { label: 'Newsletter', roles: ['admin'], render: sectionNewsletter },
 };
 
 const toastErr = (e) => toast(errMsg(e), 'err');
@@ -192,4 +193,56 @@ async function sectionUsers(ctx, body) {
   if (error) throw error; if (!ctx.current()) return;
   body.innerHTML = `<div class="card"><p class="muted small">Uloge: <strong>user</strong> (običan), <strong>editor</strong> (vijesti i galerija), <strong>admin</strong> (sve). Ne možeš promijeniti sopstvenu ulogu.</p><div class="table-wrap"><table><thead><tr><th class="left">Korisnik</th><th>Uloga</th></tr></thead><tbody>${data.map((u) => `<tr><td class="left">@${esc(u.username)}${u.id === state.session.user.id ? ' <span class="muted">(ti)</span>' : ''}</td><td><select data-role="${esc(u.id)}" ${u.id === state.session.user.id || !isAdmin() ? 'disabled' : ''}>${['user', 'editor', 'admin'].map((r) => `<option value="${r}" ${u.role === r ? 'selected' : ''}>${r}</option>`).join('')}</select></td></tr>`).join('')}</tbody></table></div></div>`;
   body.querySelectorAll('[data-role]').forEach((sel) => sel.addEventListener('change', async () => { const { error: e2 } = await sb.from('profiles').update({ role: sel.value }).eq('id', sel.dataset.role); if (e2) { toastErr(e2); return; } toast('Uloga promijenjena.'); }));
+}
+
+
+/* ---------- Newsletter ---------- */
+async function sectionNewsletter(ctx, body) {
+  const { count, error: countError } = await sb.from('newsletter_subscribers')
+    .select('email', { count: 'exact', head: true }).is('unsubscribed_at', null);
+  if (countError) {
+    body.innerHTML = '<div class="card"><h2>Newsletter</h2><p class="muted">Nije moguće učitati broj aktivnih pretplatnika. Provjeri migraciju newslettera i administratorska prava.</p></div>';
+  } else {
+    body.innerHTML = `
+      <section class="card">
+        <h2>Newsletter</h2>
+        <p class="muted">Pošalji e-mail obavještenje osobama koje su se prijavile na listu. Odjavljeni korisnici neće dobiti poruku.</p>
+        <p><strong>Aktivni pretplatnici:</strong> <span>${Number(count || 0)}</span></p>
+        <form id="newsletter-send-form" class="form">
+          <label>Naslov e-maila<input name="subject" maxlength="120" minlength="2" required placeholder="Npr. Novo kolo i rezultati"></label>
+          <label>Tekst poruke<textarea name="text" rows="8" minlength="2" maxlength="4000" required placeholder="Napiši obavještenje za navijače…"></textarea></label>
+          <p class="muted small">Poruka se šalje preko Resenda. Provjeri naslov i tekst prije slanja; slanje se ne može opozvati.</p>
+          <button class="btn btn-primary" type="submit" ${Number(count || 0) === 0 ? 'disabled' : ''}>Pošalji newsletter</button>
+          <p id="newsletter-send-status" class="small" role="status" aria-live="polite"></p>
+        </form>
+      </section>`;
+  }
+  const form = body.querySelector('#newsletter-send-form');
+  if (!form) return;
+  form.addEventListener('submit', async (e) => {
+    e.preventDefault();
+    const subject = String(new FormData(form).get('subject') || '').trim();
+    const text = String(new FormData(form).get('text') || '').trim();
+    if (subject.length < 2 || text.length < 2) return toast('Unesi naslov i tekst poruke.', 'err');
+    if (!confirm(`Poslati newsletter na ${Number(count || 0)} aktivnih e-mail adresa?\n\nNaslov: ${subject}`)) return;
+    const button = form.querySelector('button[type="submit"]');
+    const status = form.querySelector('#newsletter-send-status');
+    button.disabled = true;
+    status.textContent = 'Slanje u toku…';
+    try {
+      const { data, error } = await sb.functions.invoke('send-newsletter', { body: { subject, text } });
+      if (error) throw error;
+      if (!data || typeof data.sent !== 'number' || typeof data.failed !== 'number') {
+        throw new Error(data?.error || 'Server nije vratio potvrdu slanja.');
+      }
+      status.textContent = `Završeno: prihvaćeno ${data.sent}, neuspjelo ${data.failed}, ukupno ${data.total}.`;
+      if (data.failed > 0) toast('Newsletter je poslan djelimično. Provjeri izvještaj.', 'err');
+      else toast('Newsletter je uspješno predat Resendu.');
+    } catch (error) {
+      status.textContent = error?.message || 'Slanje nije uspjelo. Provjeri Supabase i Resend postavke.';
+      toast('Newsletter nije poslan.', 'err');
+    } finally {
+      button.disabled = false;
+    }
+  });
 }
