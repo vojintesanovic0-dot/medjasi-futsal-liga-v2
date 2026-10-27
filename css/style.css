@@ -2061,3 +2061,8 @@ tbody tr{transition:background .15s ease}
 .blocked-box summary{cursor:pointer;font-weight:600}
 .blocked-list{list-style:none;padding:0;margin:8px 0 0;display:grid;gap:6px}
 .blocked-list li{display:flex;justify-content:space-between;align-items:center;gap:8px}
+
+/* Omiljene ekipe i push obavještenja (korak 7) */
+#follow-team{margin-top:8px}
+#follow-team.on{background:var(--accent,#22c55e);color:#06120a}
+#push-followed{margin-right:6px}
