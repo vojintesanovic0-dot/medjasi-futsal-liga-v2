@@ -1011,3 +1011,13 @@ html { scroll-behavior: smooth; }
   .article .cover { border-radius: 13px; }
   .gallery { gap: 8px; }
 }
+
+/* Newsletter signup */
+.newsletter-wrap { margin:18px 0; max-width:680px; }
+.newsletter { display:grid; gap:10px; padding:18px; border:1px solid var(--border,#303640); border-radius:14px; background:var(--panel,#171a20); }
+.nl-row { display:flex; gap:8px; }
+.nl-row input { flex:1; min-width:0; }
+.newsletter .check { display:flex; align-items:flex-start; gap:8px; line-height:1.5; }
+.newsletter .check input { margin-top:4px; }
+.newsletter #nl-msg { min-height:1em; margin:0; }
+@media (max-width:560px) { .nl-row { flex-direction:column; } }
