@@ -105,3 +105,16 @@ export const getAllSponsors = () => unwrap(sb.from('sponsors').select('*').order
 export const addSponsor = (row) => unwrap(sb.from('sponsors').insert(row).select().single());
 export const updateSponsor = (id, patch) => unwrap(sb.from('sponsors').update(patch).eq('id', id).select());
 export const deleteSponsor = (id) => unwrap(sb.from('sponsors').delete().eq('id', id).select());
+
+
+// ---------- Ankete ----------
+export const getActivePolls = () => unwrap(sb.from('polls').select('id, question, closes_at, options:poll_options(id,label,position)').eq('active', true).order('created_at', { ascending: false }).limit(10));
+export const getPollResults = (pollIds) => pollIds.length ? unwrap(sb.rpc('get_poll_results', { p_poll_ids: pollIds })) : Promise.resolve([]);
+export const getMyPollVotes = (userId) => unwrap(sb.from('poll_votes').select('poll_id, option_id').eq('user_id', userId));
+export const castPollVote = (pollId, optionId) => unwrap(sb.rpc('cast_poll_vote', { p_poll_id: pollId, p_option_id: optionId }));
+export const getAllPolls = () => unwrap(sb.from('polls').select('id, question, active, closes_at, created_at, options:poll_options(id,label,position)').order('created_at', { ascending: false }));
+
+// ---------- Blokiranje ----------
+export const getMyBlocks = (userId) => unwrap(sb.from('user_blocks').select('blocked_id, blocked:profiles!user_blocks_blocked_id_fkey(username, display_name)').eq('blocker_id', userId));
+export const blockUser = (userId, blockedId) => unwrap(sb.from('user_blocks').insert({ blocker_id: userId, blocked_id: blockedId }));
+export const unblockUser = (userId, blockedId) => unwrap(sb.from('user_blocks').delete().eq('blocker_id', userId).eq('blocked_id', blockedId));
