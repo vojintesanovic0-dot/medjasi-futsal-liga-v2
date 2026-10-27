@@ -1964,3 +1964,12 @@ table{border-collapse:separate;border-spacing:0;width:100%;overflow:hidden;borde
 .stat-tile strong{font-size:1.4rem}
 .player-matches td.left a{font-weight:600}
 .grid-form .full{grid-column:1 / -1}
+
+/* ---- Partneri lige i albumi galerije ---- */
+.sp-row{display:flex;flex-wrap:wrap;gap:14px;align-items:center;justify-content:center}
+.sp-item{display:inline-flex;align-items:center;justify-content:center;min-width:120px;min-height:64px;padding:10px 14px;border:1px solid var(--line);border-radius:var(--radius);background:var(--card);text-decoration:none;color:inherit}
+.sp-item img{display:block;max-width:180px;max-height:48px;width:auto;object-fit:contain}
+.sp-name{font-weight:700}
+.g-albums{display:flex;flex-wrap:wrap;gap:8px;margin:0 0 14px}
+.g-albums .btn.on{background:var(--accent,#22c55e);color:#06120a}
+.gallery figure[hidden]{display:none}
