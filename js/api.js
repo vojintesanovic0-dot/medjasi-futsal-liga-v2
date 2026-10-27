@@ -97,3 +97,11 @@ export const getPlayerEvents = id => unwrap(sb.from('match_events').select('matc
 export const getMyTeamApplications = userId => unwrap(sb.from('team_applications').select('*').eq('user_id',userId).order('created_at',{ascending:false}));
 export const createTeamApplication = row => unwrap(sb.from('team_applications').insert(row).select().single());
 export const getAllTeamApplications = () => unwrap(sb.from('team_applications').select('*').order('created_at',{ascending:false}));
+
+// ---------- Sponzori ----------
+export const getActiveSponsors = () => unwrap(sb.from('sponsors').select('*')
+  .eq('active', true).order('sort_order').order('name'));
+export const getAllSponsors = () => unwrap(sb.from('sponsors').select('*').order('sort_order').order('name'));
+export const addSponsor = (row) => unwrap(sb.from('sponsors').insert(row).select().single());
+export const updateSponsor = (id, patch) => unwrap(sb.from('sponsors').update(patch).eq('id', id).select());
+export const deleteSponsor = (id) => unwrap(sb.from('sponsors').delete().eq('id', id).select());
