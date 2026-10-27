@@ -32,6 +32,7 @@ const ratingCls=r=>r==null?'':r>=7?'good':r>=5?'mid':'low';
 
 export function registerPlayer(route) {
   route('/igrac/:id', async (ctx,id) => {
+    if (!/^[0-9a-f-]{36}$/i.test(id)) { ctx.app.innerHTML = empty('Igrač nije pronađen.'); return; }
     try {
       const player=await getPlayer(id);
       if(!player){ctx.app.innerHTML=empty('Igrač nije pronađen.');return;}
