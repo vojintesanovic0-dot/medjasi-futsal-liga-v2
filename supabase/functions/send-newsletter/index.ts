@@ -12,6 +12,30 @@ const json = (body: unknown, status = 200, origin = '') => new Response(JSON.str
   },
 });
 
+const escapeHtml = (value: string) => value.replace(/[&<>"']/g, (char) => ({
+  '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;',
+}[char] ?? char));
+
+const emailHtml = (subject: string, text: string, siteUrl: string, unsubscribeUrl: string) => {
+  const paragraphs = escapeHtml(text).split(/\r?\n{2,}/)
+    .map((paragraph) => `<p style="margin:0 0 16px;line-height:1.7;color:#d7dde5;white-space:normal">${paragraph.replace(/\r?\n/g, '<br>')}</p>`)
+    .join('');
+  return `<!doctype html>
+<html lang="bs"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"></head>
+<body style="margin:0;padding:24px 12px;background:#0b0e12;font-family:Arial,Helvetica,sans-serif;color:#f4f6f8">
+  <table role="presentation" width="100%" cellspacing="0" cellpadding="0" style="max-width:620px;margin:0 auto;border:1px solid #29313b;border-radius:16px;background:#141920">
+    <tr><td style="padding:28px 26px 10px">
+      <p style="margin:0 0 8px;color:#45d483;font-size:12px;font-weight:bold;letter-spacing:2px">MEĐASI FUTSAL LIGA</p>
+      <h1 style="margin:0 0 24px;font-size:25px;line-height:1.25;color:#ffffff">${escapeHtml(subject)}</h1>
+      ${paragraphs}
+      <p style="margin:26px 0"><a href="${escapeHtml(siteUrl)}" style="display:inline-block;padding:12px 18px;border-radius:9px;background:#22c55e;color:#07110a;text-decoration:none;font-weight:bold">Otvori ligu</a></p>
+      <hr style="border:0;border-top:1px solid #29313b;margin:24px 0 16px">
+      <p style="margin:0;color:#98a3b2;font-size:12px;line-height:1.6">Primio/la si ovu poruku jer si se prijavio/la na e-mail obavještenja Međasi Futsal Lige. <a href="${escapeHtml(unsubscribeUrl)}" style="color:#7ee2a8">Odjavi se</a>.</p>
+    </td></tr>
+  </table>
+</body></html>`;
+};
+
 Deno.serve(async (req) => {
   const url = Deno.env.get('SUPABASE_URL');
   const anon = Deno.env.get('SUPABASE_ANON_KEY');
@@ -70,11 +94,12 @@ Deno.serve(async (req) => {
   let sent = 0, failed = 0;
   for (let i = 0; i < list.length; i += 100) {
     const chunk = list.slice(i, i + 100);
-    const payload = chunk.map(s => {
+    const payload = chunk.map((s) => {
       const link = `${siteUrl.replace(/\/$/, '')}/#/odjava-email?token=${encodeURIComponent(s.token)}`;
       return {
         from, to: [s.email], subject,
         text: `${text}\n\n—\nOdjava s obavještenja: ${link}`,
+        html: emailHtml(subject, text, siteUrl, link),
         headers: { 'List-Unsubscribe': `<${link}>` },
       };
     });
@@ -90,7 +115,7 @@ Deno.serve(async (req) => {
         failed += chunk.length;
         continue;
       }
-      const itemFailures = result.data.filter(item => item?.error).length;
+      const itemFailures = result.data.filter((item) => item?.error).length;
       const accepted = Math.min(chunk.length, result.data.length);
       sent += Math.max(0, accepted - itemFailures);
       failed += chunk.length - Math.max(0, accepted - itemFailures);
