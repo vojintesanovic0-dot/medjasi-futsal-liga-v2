@@ -74,7 +74,7 @@ Deno.serve(async (req) => {
       const link = `${allowedOrigin}/#/odjava-email?token=${encodeURIComponent(s.token)}`;
       return {
         from, to: [s.email], subject,
-        text: `${text}\\n\\n—\\nOdjava s obavještenja: ${link}`,
+        text: `${text}\n\n—\nOdjava s obavještenja: ${link}`,
         headers: { 'List-Unsubscribe': `<${link}>` },
       };
     });
