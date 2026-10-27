@@ -1,6 +1,6 @@
 // Service worker: offline ljuska (network-first) + web push obavještenja.
 const CACHE = 'medjasi-v2-cache-v8';
-const SHELL = ['./', 'index.html', 'privatnost.html', 'sitemap.xml', 'robots.txt', 'css/style.css?v=8', 'js/app.js', 'js/pages/home.js', 'js/pages/stats.js', 'js/pages/search.js', 'js/pages/player.js', 'js/pages/archive.js', 'js/pages/applications.js', 'js/pages/profile-public.js', 'js/pages/unsubscribe.js', 'js/pages/sponsors.js', 'js/newsletter.js', 'js/seo.js', 'js/match-extras.js', 'js/pages/admin-news.js', 'js/pages/admin-extra.js', 'manifest.json'];
+const SHELL = ['./', 'index.html', 'privatnost.html', 'sitemap.xml', 'robots.txt', 'css/style.css?v=8', 'js/app.js', 'js/pages/home.js', 'js/pages/stats.js', 'js/pages/search.js', 'js/pages/player.js', 'js/pages/archive.js', 'js/pages/applications.js', 'js/pages/profile-public.js', 'js/pages/unsubscribe.js', 'js/pages/sponsors.js', 'js/newsletter.js', 'js/match-notes.js', 'js/seo.js', 'js/match-extras.js', 'js/pages/admin-news.js', 'js/pages/admin-extra.js', 'manifest.json'];
 
 self.addEventListener('install', (e) => {
   e.waitUntil(caches.open(CACHE).then((c) => c.addAll(SHELL)).then(() => self.skipWaiting()));

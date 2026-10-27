@@ -5,6 +5,7 @@ import { onLeave } from '../router.js';
 import { shareMatchImage, matchIcsUrl, seasonIcsUrl } from '../share.js';
 import { toast, errMsg } from '../util.js';
 import { loadMatchExtras, mountMatchExtras } from '../match-extras.js';
+import { loadNotes, notesHtml, mountNotes } from '../match-notes.js';
 
 const EVENT_LABEL = { goal: '⚽ Gol', own_goal: '⚽ Autogol', yellow: '🟨 Žuti karton', red: '🟥 Crveni karton' };
 export function registerMatches(route) {
@@ -30,6 +31,7 @@ export function registerMatches(route) {
     const [events, homePlayers, awayPlayers] = await Promise.all([getEvents(id), getPlayers(match.home_team_id), getPlayers(match.away_team_id)]);
     if (!ctx.current()) return;
     const extras = await loadMatchExtras(match);
+    const notes = await loadNotes(match.id);
     if (!ctx.current()) return;
     const timeline = events.length ? `<ol class="timeline">${events.map((e) => {
       const team = e.team_id === match.home_team_id ? match.home : match.away;
@@ -39,8 +41,9 @@ export function registerMatches(route) {
     }).join('')}</ol>` : empty('Još nema događaja.');
     const lineup = (team, players) => `<div class="card"><h3>${badge(team, 'sm')} ${esc(team?.name)}</h3>${players.length ? `<ul class="roster">${players.map((p) => `<li><span class="no">${p.number ?? '–'}</span>${esc(p.first_name)} ${esc(p.last_name)}${p.is_captain ? ' <span class="tag">C</span>' : ''}</li>`).join('')}</ul>` : '<p class="muted">Nema igrača.</p>'}</div>`;
     const live = match.status === 'live' || match.status === 'paused';
-    ctx.app.innerHTML = `<a class="back" href="#/utakmice">← Sve utakmice</a><section class="match-hero ${live ? 'is-live' : ''}"><div class="mh-meta">${statusPill(match)} <span class="muted">${match.round}. kolo${match.venue ? ' · ' + esc(match.venue) : ''}</span></div><div class="mh-score"><a href="#/ekipa/${esc(match.home_team_id)}" class="mh-team">${badge(match.home, 'lg')}<span>${esc(match.home?.name)}</span></a><div class="score big">${scoreHtml(match)}</div><a href="#/ekipa/${esc(match.away_team_id)}" class="mh-team">${badge(match.away, 'lg')}<span>${esc(match.away?.name)}</span></a></div><div class="mh-foot">${match.status === 'scheduled' ? esc(fmtDateTime(match.scheduled_at)) : `${live ? clockHtml(match) : `<span class="period">${esc(periodName(match))} · ${esc(STATUS_LABEL[match.status])}</span>`}`}</div></section><div class="match-actions">${match.status === 'scheduled' ? `<a class="btn btn-sm" id="ics" href="#" download="utakmica.ics">📅 Dodaj u kalendar</a>` : ''}<button class="btn btn-sm" id="share-img" type="button">🖼 Podijeli rezultat</button></div><section class="block"><h2>Tok utakmice</h2>${timeline}</section>${extras.html}<section class="block"><h2>Sastavi</h2><div class="two-col">${lineup(match.home, homePlayers)}${lineup(match.away, awayPlayers)}</div></section>`;
+    ctx.app.innerHTML = `<a class="back" href="#/utakmice">← Sve utakmice</a><section class="match-hero ${live ? 'is-live' : ''}"><div class="mh-meta">${statusPill(match)} <span class="muted">${match.round}. kolo${match.venue ? ' · ' + esc(match.venue) : ''}</span></div><div class="mh-score"><a href="#/ekipa/${esc(match.home_team_id)}" class="mh-team">${badge(match.home, 'lg')}<span>${esc(match.home?.name)}</span></a><div class="score big">${scoreHtml(match)}</div><a href="#/ekipa/${esc(match.away_team_id)}" class="mh-team">${badge(match.away, 'lg')}<span>${esc(match.away?.name)}</span></a></div><div class="mh-foot">${match.status === 'scheduled' ? esc(fmtDateTime(match.scheduled_at)) : `${live ? clockHtml(match) : `<span class="period">${esc(periodName(match))} · ${esc(STATUS_LABEL[match.status])}</span>`}`}</div></section><div class="match-actions">${match.status === 'scheduled' ? `<a class="btn btn-sm" id="ics" href="#" download="utakmica.ics">📅 Dodaj u kalendar</a>` : ''}<button class="btn btn-sm" id="share-img" type="button">🖼 Podijeli rezultat</button></div><section class="block"><h2>Tok utakmice</h2>${timeline}</section>${extras.html}${notesHtml(notes)}<section class="block"><h2>Sastavi</h2><div class="two-col">${lineup(match.home, homePlayers)}${lineup(match.away, awayPlayers)}</div></section>`;
     mountMatchExtras(ctx.app, match);
+    mountNotes(ctx.app, match, onLeave);
     const ics = ctx.app.querySelector('#ics'); if (ics) { const url = matchIcsUrl(match); ics.href = url; onLeave(() => URL.revokeObjectURL(url)); }
     ctx.app.querySelector('#share-img').addEventListener('click', async (e) => { const btn = e.currentTarget; btn.disabled = true; try { await shareMatchImage(match); } catch (err) { toast(errMsg(err), 'err'); } btn.disabled = false; });
   }, { live: true });
