@@ -31,6 +31,6 @@ export function registerTeams(route) {
     ctx.app.innerHTML = `<a class="back" href="#/ekipe">← Sve ekipe</a>
       <section class="team-hero" style="--tc:${esc(team.color || '#22c55e')}">${badge(team, 'xl')}<div><h1>${esc(team.name)}</h1><p class="muted">${players.length} igrača</p></div></section>
       <section class="block"><h2>Forma</h2>${formHtml}</section>
-      <section class="block"><h2>Sastav</h2>${players.length ? `<div class="table-wrap"><table class="roster-table"><thead><tr><th>Br.</th><th class="left">Igrač</th><th>Pozicija</th></tr></thead><tbody>${players.map((p) => `<tr><td>${p.number ?? '–'}</td><td class="left">${esc(p.first_name)} ${esc(p.last_name)}${p.is_captain ? ' <span class="tag">C</span>' : ''}</td><td>${esc(POS[p.position] || '—')}</td></tr>`).join('')}</tbody></table></div>` : empty('Ekipa još nema igrače.')}</section>`;
+      <section class="block"><h2>Sastav</h2>${players.length ? `<div class="table-wrap"><table class="roster-table"><thead><tr><th>Br.</th><th class="left">Igrač</th><th>Pozicija</th></tr></thead><tbody>${players.map((p) => `<tr><td>${p.number ?? '–'}</td><td class="left"><a href="#/igrac/${esc(p.id)}">${esc(p.first_name)} ${esc(p.last_name)}</a>${p.is_captain ? ' <span class="tag">C</span>' : ''}</td><td>${esc(POS[p.position] || '—')}</td></tr>`).join('')}</tbody></table></div>` : empty('Ekipa još nema igrače.')}</section>`;
   });
 }
