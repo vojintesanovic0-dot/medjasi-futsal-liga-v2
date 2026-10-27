@@ -7,6 +7,7 @@ import { sectionNews2 } from './admin-news.js';
 import { sectionGenerator, sectionAudit, sectionReports } from './admin-extra.js';
 import { bindLineup } from './admin-lineup.js';
 import { sectionTeamApplications } from './admin-applications.js';
+import { sectionSponsors } from './admin-sponsors.js';
 
 const POS = { '': '—', golman: 'Golman', odbrana: 'Odbrana', vezni: 'Vezni', napad: 'Napad' };
 const EVENT_TYPES = { goal: 'Gol', own_goal: 'Autogol', yellow: 'Žuti karton', red: 'Crveni karton' };
@@ -24,6 +25,7 @@ const SECTIONS = {
   izmjene: { label: 'Istorija izmjena', roles: ['admin'], render: sectionAudit },
   newsletter: { label: 'Newsletter', roles: ['admin'], render: sectionNewsletter },
   prijaveEkipa: { label: 'Prijave ekipa', roles: ['admin'], render: sectionTeamApplications },
+  partneri: { label: 'Partneri', roles: ['admin'], render: sectionSponsors },
 };
 
 const toastErr = (e) => toast(errMsg(e), 'err');
