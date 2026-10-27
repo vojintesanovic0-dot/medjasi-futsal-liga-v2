@@ -15,8 +15,8 @@
   <meta name="theme-color" content="#0b0d12">
   <link rel="manifest" href="manifest.json">
   <link rel="apple-touch-icon" href="images/icon-192.png">
-  <link rel="icon" href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'><text y='.9em' font-size='90'>⚽</text></svg>">
-  <link rel="stylesheet" href="css/style.css?v=13">
+  <link rel="icon" type="image/png" sizes="192x192" href="images/icon-192.png">
+  <link rel="stylesheet" href="css/style.css?v=14">
   <script type="module" src="js/app.js"></script>
 </head>
 <body>
@@ -24,7 +24,7 @@
   <header class="topbar">
     <div class="wrap bar">
       <a class="brand" href="#/"><span class="brand-mark">M</span><span>Međasi<small>Futsal Liga</small></span></a>
-      <button id="nav-toggle" class="burger" aria-label="Meni" aria-controls="nav">☰</button>
+      <button id="nav-toggle" class="burger" aria-label="Meni" aria-controls="nav"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" aria-hidden="true"><path d="M4 7h16M4 12h16M4 17h16"/></svg></button>
       <nav id="nav" class="nav" aria-label="Glavna navigacija">
         <a data-nav="/" href="#/">Početna</a>
         <a data-nav="utakmice" href="#/utakmice">Utakmice</a>
@@ -36,7 +36,7 @@
         <a data-nav="zajednica" href="#/zajednica">Zajednica</a>
         <a data-nav="galerija" href="#/galerija">Galerija</a>
         <a data-nav="chat" href="#/chat">Chat</a>
-        <a data-nav="pretraga" href="#/pretraga" aria-label="Pretraga" title="Pretraga">🔍</a>
+        <a data-nav="pretraga" class="nav-icon" href="#/pretraga" aria-label="Pretraga" title="Pretraga"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><circle cx="10.8" cy="10.8" r="6.8"/><path d="m16 16 4.2 4.2"/></svg></a>
       </nav>
       <div id="nav-user" class="nav-user"></div>
     </div>
