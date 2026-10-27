@@ -847,3 +847,67 @@ html { scroll-behavior: smooth; }
 :where(.news-card, .team-tile, .match-card, .gallery figure, .sponsor):active:hover {
   transform: translateY(0);
 }
+
+/* Premium homepage art direction: less synthetic depth, stronger editorial hierarchy */
+.home-dashboard .home-hero {
+  background:
+    linear-gradient(118deg, #111719 0%, #101715 58%, #131c17 100%);
+  border-color: rgba(145,190,157,.2);
+  box-shadow: 0 18px 48px rgba(0,0,0,.22), inset 0 1px rgba(255,255,255,.025);
+}
+.home-dashboard .home-hero::before {
+  opacity: .1;
+  background-size: 44px 44px;
+}
+.home-dashboard .home-hero::after { display: none; }
+.home-dashboard .home-hero h1 {
+  letter-spacing: -.045em;
+  font-weight: 850;
+  line-height: 1.02;
+}
+.home-dashboard .home-hero h1 span { text-shadow: none; }
+.home-kicker-mark {
+  border-radius: 50%;
+  box-shadow: none;
+  transform: none;
+}
+.home-primary-action { box-shadow: 0 4px 14px rgba(34,197,94,.13); }
+.home-visual { perspective: none; }
+.home-visual-grid {
+  background: radial-gradient(ellipse at center, rgba(34,197,94,.07), transparent 68%);
+  filter: blur(4px);
+}
+.home-pitch {
+  transform: none;
+  border-color: rgba(145,190,157,.42);
+  border-radius: 12px;
+  background: linear-gradient(145deg, rgba(31,83,50,.15), rgba(12,20,16,.36));
+  box-shadow: 0 14px 30px rgba(0,0,0,.2);
+}
+.home-pitch::before {
+  opacity: .14;
+  background: repeating-linear-gradient(0deg, rgba(95,226,139,.07) 0 1px, transparent 1px 32px);
+}
+.home-pitch-half, .home-center-circle, .home-goal { border-color: rgba(151,205,164,.48); }
+.home-pitch-half { background: rgba(151,205,164,.48); }
+.home-pitch-spot { background: #b7e9c2; box-shadow: none; }
+.home-visual-orb {
+  top: 15%;
+  left: 12%;
+  border-radius: 13px;
+  border-color: rgba(145,190,157,.35);
+  background: linear-gradient(145deg, #2bb866, #197b43);
+  box-shadow: 0 8px 20px rgba(0,0,0,.22);
+  transform: none;
+}
+.home-floating-card {
+  border-color: rgba(177,204,184,.18);
+  border-radius: 12px;
+  background: rgba(17,24,20,.97);
+  box-shadow: 0 10px 24px rgba(0,0,0,.22);
+  backdrop-filter: blur(8px);
+}
+@media (max-width: 640px) {
+  .home-pitch { width: 82%; transform: none; }
+  .home-visual-orb { transform: none; }
+}
