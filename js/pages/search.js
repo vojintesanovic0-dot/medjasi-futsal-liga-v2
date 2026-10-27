@@ -29,7 +29,7 @@ export function registerSearch(route) {
         section('Ekipe', foundTeams.length ? `<div class="team-grid">${foundTeams.map((team) =>
           `<a class="team-tile" href="#/ekipa/${esc(team.id)}" style="--tc:${esc(team.color || '#22c55e')}">${badge(team, 'lg')}<strong>${esc(team.name)}</strong></a>`).join('')}</div>` : ''),
         section('Igrači', foundPlayers.length ? `<ul class="plain">${foundPlayers.map((player) =>
-          `<li><a href="#/ekipa/${esc(player.team_id)}">${esc(player.first_name)} ${esc(player.last_name)}</a>
+          `<li><a href="#/igrac/${esc(player.id)}">${esc(player.first_name)} ${esc(player.last_name)}</a>
             <span class="muted small">${player.number ?? ''} · ${esc(player.team?.name || '')}</span></li>`).join('')}</ul>` : ''),
         section('Vijesti', foundNews.length ? `<ul class="plain">${foundNews.map((item) =>
           `<li><a href="#/vijest/${esc(item.slug)}">${esc(item.title)}</a>

@@ -1,6 +1,7 @@
 import { getActiveSeason, getSeasons, getStandings, getMatches, getPublishedNews } from '../api.js';
 import { esc, fmtLong, fmtDateTime, empty } from '../util.js';
 import { matchCard, standingsTable, badge, scoreHtml } from '../components.js';
+import { loadSponsors, sponsorStrip } from './sponsors.js';
 
 export function registerHome(route) {
   route('/', async (ctx) => {
@@ -10,6 +11,7 @@ export function registerHome(route) {
       getMatches(season.id), getStandings(), getPublishedNews(3),
     ]);
     if (!ctx.current()) return;
+    const sponsorsHtml = sponsorStrip(await loadSponsors());
     const live = matches.filter((m) => m.status === 'live' || m.status === 'paused');
     const upcoming = matches.filter((m) => m.status === 'scheduled').slice(0, 3);
     const recent = matches.filter((m) => m.status === 'finished').slice(-3).reverse();
@@ -105,6 +107,7 @@ export function registerHome(route) {
         </section>
         ${section('Posljednji rezultati', recent)}
         ${news.length ? `<section class="block home-block home-news-block"><div class="block-head"><h2>Iz života lige</h2><a href="#/vijesti">Sve vijesti <span aria-hidden="true">↗</span></a></div><div class="news-grid">${news.map((n, index) => `<a class="news-card home-news-card${index === 0 ? ' home-news-featured' : ''}" href="#/vijest/${esc(n.slug)}">${n.cover_url ? `<img src="${esc(n.cover_url)}" alt="" loading="lazy">` : '<div class="news-noimg"><span>MEĐASI <b>FUTSAL LIGA</b></span></div>'}<div class="nc-body"><span class="muted">${fmtLong(n.published_at || n.created_at)}</span><h3>${esc(n.title)}</h3><p>${esc(n.excerpt || '')}</p><span class="home-news-read">Pročitaj vijest <span aria-hidden="true">↗</span></span></div></a>`).join('')}</div></section>` : ''}
+        ${sponsorsHtml}
       </div>
     `;
   }, { live: true });
