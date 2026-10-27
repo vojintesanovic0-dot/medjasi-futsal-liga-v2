@@ -16,10 +16,10 @@ export function registerGallery(route) {
     const items = await getGallery();
     if (!ctx.current()) return;
     const albums = [...new Set(items.map((g) => g.album).filter(Boolean))].sort((a, b) => a.localeCompare(b, 'bs'));
-    const upload = isStaff() ? \`<form id="g-form" class="card form narrow" style="margin-bottom:16px"><label>Naslov (opcionalno)<input name="title" maxlength="120"></label><label>Album (opcionalno)<input name="album" list="g-albums-list" maxlength="60" placeholder="npr. Finale 2026"></label><label>Fotografija ili video (do 15 MB)<input type="file" name="file" accept="image/*,video/mp4,video/webm" required></label><button class="btn btn-primary" type="submit">Dodaj u galeriju</button></form>\` : '';
-    const chips = albums.length ? \`<div class="g-albums" id="g-albums" aria-label="Filter albuma"><button class="btn btn-sm on" data-album="" type="button">Sve</button>\${albums.map((a) => \`<button class="btn btn-sm" data-album="\${esc(a)}" type="button">\${esc(a)}</button>\`).join('')}</div>\` : '';
-    const datalist = \`<datalist id="g-albums-list">\${albums.map((a) => \`<option value="\${esc(a)}">\`).join('')}</datalist>\`;
-    ctx.app.innerHTML = \`<div class="page-head"><h1>Galerija</h1></div>\${upload}\${datalist}\${chips}\${items.length ? \`<div class="gallery" id="g-grid">\${items.map(item).join('')}</div>\` : empty('Galerija je prazna.')}\`;
+    const upload = isStaff() ? `<form id="g-form" class="card form narrow" style="margin-bottom:16px"><label>Naslov (opcionalno)<input name="title" maxlength="120"></label><label>Album (opcionalno)<input name="album" list="g-albums-list" maxlength="60" placeholder="npr. Finale 2026"></label><label>Fotografija ili video (do 15 MB)<input type="file" name="file" accept="image/*,video/mp4,video/webm" required></label><button class="btn btn-primary" type="submit">Dodaj u galeriju</button></form>` : '';
+    const chips = albums.length ? `<div class="g-albums" id="g-albums" aria-label="Filter albuma"><button class="btn btn-sm on" data-album="" type="button">Sve</button>${albums.map((a) => `<button class="btn btn-sm" data-album="${esc(a)}" type="button">${esc(a)}</button>`).join('')}</div>` : '';
+    const datalist = `<datalist id="g-albums-list">${albums.map((a) => `<option value="${esc(a)}">`).join('')}</datalist>`;
+    ctx.app.innerHTML = `<div class="page-head"><h1>Galerija</h1></div>${upload}${datalist}${chips}${items.length ? `<div class="gallery" id="g-grid">${items.map(item).join('')}</div>` : empty('Galerija je prazna.')}`;
     ctx.app.querySelector('#g-albums')?.addEventListener('click', (e) => {
       const btn = e.target.closest('[data-album]'); if (!btn) return;
       ctx.app.querySelectorAll('#g-albums [data-album]').forEach((b) => b.classList.toggle('on', b === btn));
