@@ -3,6 +3,7 @@ import { state, isStaff } from '../state.js';
 import { esc, toast, errMsg } from '../util.js';
 import { pushSupported, enablePush, disablePush, currentSubscription } from '../push.js';
 import { VAPID_PUBLIC_KEY } from '../config.js';
+import { setPushFollowedOnly } from '../api.js';
 
 const USERNAME_RE = /^[a-z0-9_]{3,20}$/;
 
@@ -115,18 +116,32 @@ export function registerAuth(route) {
     if (warningsError) throw warningsError;
     ctx.app.innerHTML = `<div class="page-head"><h1>Moj profil</h1><p class="muted">@${esc(p.username || '')} · ${esc(p.role || 'user')}</p></div><form id="profile-form" class="card form narrow"><label>Ime za prikaz<input name="display_name" maxlength="40" value="${esc(p.display_name || '')}"></label><label>Kratka biografija<textarea name="bio" maxlength="280" rows="3">${esc(p.bio || '')}</textarea></label><label>Link do avatara (slika)<input name="avatar_url" type="url" value="${esc(p.avatar_url || '')}"></label><button class="btn btn-primary" type="submit">Sačuvaj</button><button class="btn btn-ghost" type="button" id="logout">Odjavi se</button></form>${(warnings || []).length ? `<section class="card narrow warn-box"><h2>Upozorenja</h2>
       ${warnings.map((w) => `<p class="account-warning"><svg class="account-warning-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M12 3 22 20H2L12 3Z"/><path d="M12 9v4m0 3h.01"/></svg><span>${esc(w.message)}</span> <span class="muted small">${esc(new Date(w.created_at).toLocaleDateString('bs-BA'))}</span></p>`).join('')}
-    </section>` : ''}<section class="card narrow danger-box"><h2>Brisanje naloga</h2><p class="muted small">Brišu se profil, objave, komentari, pogađanja i pretplate na obavještenja. Radnja se ne može poništiti.</p><button class="btn btn-danger" type="button" id="delete-account">Obriši moj nalog</button></section><section class="card narrow push-box"><h2>Obavještenja</h2><p class="muted small" id="push-msg">Dobij obavještenje o počecima utakmica i novim vijestima.</p><button class="btn" type="button" id="push-toggle">Učitavam…</button></section>`;
+    </section>` : ''}<section class="card narrow danger-box"><h2>Brisanje naloga</h2><p class="muted small">Brišu se profil, objave, komentari, pogađanja i pretplate na obavještenja. Radnja se ne može poništiti.</p><button class="btn btn-danger" type="button" id="delete-account">Obriši moj nalog</button></section><section class="card narrow push-box"><h2>Obavještenja</h2><p class="muted small" id="push-msg">Dobij obavještenje o počecima utakmica i novim vijestima.</p><button class="btn" type="button" id="push-toggle">Učitavam…</button><label class="check small"><input type="checkbox" id="push-followed" disabled> Šalji mi samo obavještenja za ekipe koje pratim</label></section>`;
     const pushBtn = ctx.app.querySelector('#push-toggle'); const pushMsg = ctx.app.querySelector('#push-msg');
     const refreshPush = async () => {
       if (!pushSupported() || !VAPID_PUBLIC_KEY) { pushBtn.disabled = true; pushBtn.textContent = 'Nedostupno'; pushMsg.textContent = !pushSupported() ? 'Ovaj preglednik ne podržava obavještenja.' : 'Obavještenja još nisu podešena.'; return; }
       const on = !!(await currentSubscription()); pushBtn.textContent = on ? 'Isključi obavještenja' : 'Uključi obavještenja'; pushBtn.dataset.on = on ? '1' : '';
+      const fo = ctx.app.querySelector('#push-followed');
+      if (on) {
+        const sub = await currentSubscription();
+        const { data, error } = await sb.from('push_subscriptions').select('followed_only').eq('endpoint', sub.endpoint).maybeSingle();
+        if (error) throw error;
+        fo.checked = !!data?.followed_only; fo.disabled = false;
+      } else { fo.checked = false; fo.disabled = true; }
     };
     pushBtn.addEventListener('click', async () => {
       pushBtn.disabled = true;
       try { if (pushBtn.dataset.on) { await disablePush(); toast('Obavještenja isključena.'); } else { await enablePush(state.session.user.id); toast('Obavještenja uključena.'); } }
       catch (err) { toast(errMsg(err), 'err'); } pushBtn.disabled = false; refreshPush();
     });
-    refreshPush();
+    ctx.app.querySelector('#push-followed').addEventListener('change', async (e) => {
+      const sub = await currentSubscription(); if (!sub) return;
+      const checkbox = e.currentTarget; checkbox.disabled = true;
+      try { await setPushFollowedOnly(sub.endpoint, checkbox.checked); toast(checkbox.checked ? 'Obavještenja samo za omiljene ekipe.' : 'Primaš sva obavještenja.'); }
+      catch (err) { checkbox.checked = !checkbox.checked; toast(errMsg(err), 'err'); }
+      finally { checkbox.disabled = false; }
+    });
+    refreshPush().catch((err) => toast(errMsg(err), 'err'));
     ctx.app.querySelector('#delete-account').addEventListener('click', async () => {
       const word = prompt('Za potvrdu upiši OBRIŠI (velikim slovima):');
       if (word !== 'OBRIŠI') return;
