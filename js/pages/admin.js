@@ -5,6 +5,7 @@ import { esc, toast, errMsg, empty, matchElapsed, mmss, toLocalInput, fromLocalI
 import { badge } from '../components.js';
 import { sectionNews2 } from './admin-news.js';
 import { sectionGenerator, sectionAudit, sectionReports } from './admin-extra.js';
+import { sectionSponsors, sectionApplications } from './admin-v8.js';
 
 const POS = { '': '—', golman: 'Golman', odbrana: 'Odbrana', vezni: 'Vezni', napad: 'Napad' };
 const EVENT_TYPES = { goal: 'Gol', own_goal: 'Autogol', yellow: 'Žuti karton', red: 'Crveni karton' };
@@ -20,6 +21,8 @@ const SECTIONS = {
   kolo: { label: 'Generator kola', roles: ['admin'], render: sectionGenerator },
   prijave: { label: 'Prijave', roles: ['admin', 'editor'], render: sectionReports },
   izmjene: { label: 'Istorija izmjena', roles: ['admin'], render: sectionAudit },
+  sponzori: { label: 'Sponzori', roles: ['admin'], render: sectionSponsors },
+  prijave_ekipa: { label: 'Prijave ekipa', roles: ['admin'], render: sectionApplications },
 };
 
 const toastErr = (e) => toast(errMsg(e), 'err');
