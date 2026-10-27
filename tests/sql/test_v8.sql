@@ -14,3 +14,7 @@ select pg_temp.v8_assert('application owner/staff policy exists',exists(select 1
 select pg_temp.v8_assert('newsletter insert policy exists',exists(select 1 from pg_policies where schemaname='public' and tablename='newsletter_subscribers' and policyname='news_sub_insert' and cmd='INSERT'));
 select pg_temp.v8_assert('anon cannot select newsletter addresses',not exists(select 1 from information_schema.role_table_grants where table_schema='public' and table_name='newsletter_subscribers' and grantee='anon' and privilege_type='SELECT'));
 select pg_temp.v8_assert('match notes staff write policy exists',exists(select 1 from pg_policies where schemaname='public' and tablename='match_notes' and policyname='notes_staff_write' and cmd='ALL'));
+
+select pg_temp.v8_assert('newsletter subscribe function exists',to_regprocedure('public.subscribe_newsletter(text)') is not null);
+select pg_temp.v8_assert('anon cannot insert newsletter rows directly',not exists(select 1 from information_schema.role_table_grants where table_schema='public' and table_name='newsletter_subscribers' and grantee='anon' and privilege_type='INSERT'));
+select pg_temp.v8_assert('newsletter subscribe execute granted to anon',exists(select 1 from information_schema.routine_privileges where specific_schema='public' and routine_name='subscribe_newsletter' and grantee='anon' and privilege_type='EXECUTE'));

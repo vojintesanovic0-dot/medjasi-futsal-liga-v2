@@ -12,10 +12,11 @@ export function mountNewsletter(el) {
     e.preventDefault(); const form=e.currentTarget; const email=String(new FormData(form).get('email')||'').trim().toLowerCase(); const button=form.querySelector('button'); const msg=el.querySelector('#nl-msg');
     button.disabled=true; msg.textContent='Prijavljujem…';
     try {
-      const {error}=await sb.from('newsletter_subscribers').insert({email});
+      const {data,error}=await sb.rpc('subscribe_newsletter',{p_email:email});
       if(error) throw error;
+      if(data!==true) throw new Error('Unesi ispravnu e-mail adresu.');
       form.reset(); msg.textContent='Hvala! Prijava je zabilježena.';
-    } catch(error) { msg.textContent=error.code==='23505'?'Ova adresa je već prijavljena.':'Prijava nije uspjela. Provjeri adresu i pokušaj ponovo.'; }
+    } catch(error) { msg.textContent=error.message==='Unesi ispravnu e-mail adresu.'?error.message:'Prijava nije uspjela. Provjeri adresu i pokušaj ponovo.'; }
     finally { button.disabled=false; }
   });
 }

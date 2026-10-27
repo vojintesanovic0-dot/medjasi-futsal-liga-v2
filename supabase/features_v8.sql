@@ -101,11 +101,68 @@ create table if not exists public.newsletter_subscribers (
 );
 alter table public.newsletter_subscribers enable row level security;
 drop policy if exists news_sub_insert on public.newsletter_subscribers;
-create policy news_sub_insert on public.newsletter_subscribers for insert to anon, authenticated with check (true);
 drop policy if exists news_sub_admin_read on public.newsletter_subscribers;
 create policy news_sub_admin_read on public.newsletter_subscribers for select to authenticated using (public.is_admin());
-grant insert on public.newsletter_subscribers to anon, authenticated;
+revoke insert, update, delete on public.newsletter_subscribers from anon, authenticated;
 grant select on public.newsletter_subscribers to authenticated;
+
+-- Public subscription endpoint never exposes subscriber data and supports re-subscribing
+-- an address that previously opted out. Active subscribers retain their current token.
+create or replace function public.subscribe_newsletter(p_email text)
+returns boolean language plpgsql security definer set search_path=public,pg_temp as $
+declare normalized text;
+begin
+  normalized := lower(trim(coalesce(p_email,'')));
+  if char_length(normalized) > 200
+     or normalized !~ '^[^@[:space:]]+@[^@[:space:]]+[.][^@[:space:]]+(p_token uuid)
+returns boolean language plpgsql security definer set search_path=public,pg_temp as $$
+begin
+  if p_token is null then return false; end if;
+  update public.newsletter_subscribers
+    set unsubscribed_at=coalesce(unsubscribed_at,now())
+    where token=p_token;
+  return found;
+end $$;
+revoke all on function public.unsubscribe_newsletter(uuid) from public;
+grant execute on function public.unsubscribe_newsletter(uuid) to anon, authenticated;
+
+-- ===== Match notes / live text =====
+create table if not exists public.match_notes (
+  id uuid primary key default gen_random_uuid(),
+  match_id uuid not null references public.matches(id) on delete cascade,
+  minute int not null default 0 check (minute between 0 and 200),
+  text text not null check (char_length(text) between 2 and 200),
+  created_at timestamptz not null default now()
+);
+create index if not exists match_notes_idx on public.match_notes(match_id,created_at);
+alter table public.match_notes enable row level security;
+drop policy if exists notes_read on public.match_notes;
+create policy notes_read on public.match_notes for select to anon, authenticated using (true);
+drop policy if exists notes_staff_write on public.match_notes;
+create policy notes_staff_write on public.match_notes for all to authenticated
+  using (public.is_staff()) with check (public.is_staff());
+grant select on public.match_notes to anon, authenticated;
+grant insert, update, delete on public.match_notes to authenticated;
+
+do $$
+begin
+  if exists (select 1 from pg_publication where pubname='supabase_realtime')
+     and not exists (select 1 from pg_publication_tables where pubname='supabase_realtime' and schemaname='public' and tablename='match_notes') then
+    alter publication supabase_realtime add table public.match_notes;
+  end if;
+end $$;
+ then
+    return false;
+  end if;
+  insert into public.newsletter_subscribers(email)
+    values (normalized)
+    on conflict (email) do update
+      set token=gen_random_uuid(), consent_at=now(), unsubscribed_at=null
+      where public.newsletter_subscribers.unsubscribed_at is not null;
+  return true;
+end $;
+revoke all on function public.subscribe_newsletter(text) from public;
+grant execute on function public.subscribe_newsletter(text) to anon, authenticated;
 
 create or replace function public.unsubscribe_newsletter(p_token uuid)
 returns boolean language plpgsql security definer set search_path=public,pg_temp as $$
