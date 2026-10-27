@@ -118,3 +118,9 @@ export const getAllPolls = () => unwrap(sb.from('polls').select('id, question, a
 export const getMyBlocks = (userId) => unwrap(sb.from('user_blocks').select('blocked_id, blocked:profiles!user_blocks_blocked_id_fkey(username, display_name)').eq('blocker_id', userId));
 export const blockUser = (userId, blockedId) => unwrap(sb.from('user_blocks').insert({ blocker_id: userId, blocked_id: blockedId }));
 export const unblockUser = (userId, blockedId) => unwrap(sb.from('user_blocks').delete().eq('blocker_id', userId).eq('blocked_id', blockedId));
+
+// ---------- Omiljene ekipe i push ----------
+export const getMyFollowedTeamIds = (userId) => unwrap(sb.from('team_follows').select('team_id').eq('user_id', userId)).then((rows) => new Set(rows.map((r) => r.team_id)));
+export const followTeam = (userId, teamId) => unwrap(sb.from('team_follows').insert({ user_id: userId, team_id: teamId }));
+export const unfollowTeam = (userId, teamId) => unwrap(sb.from('team_follows').delete().eq('user_id', userId).eq('team_id', teamId));
+export const setPushFollowedOnly = (endpoint, value) => unwrap(sb.from('push_subscriptions').update({ followed_only: !!value }).eq('endpoint', endpoint).select());
