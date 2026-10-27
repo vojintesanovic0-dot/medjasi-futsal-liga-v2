@@ -1021,3 +1021,43 @@ html { scroll-behavior: smooth; }
 .newsletter .check input { margin-top:4px; }
 .newsletter #nl-msg { min-height:1em; margin:0; }
 @media (max-width:560px) { .nl-row { flex-direction:column; } }
+
+
+/* Branded interface icons — crisp, consistent and emoji-free */
+.burger {
+  width: 40px;
+  height: 40px;
+  padding: 0;
+  display: grid;
+  place-items: center;
+}
+.burger svg,
+.nav-icon svg {
+  display: block;
+  width: 19px;
+  height: 19px;
+  flex: 0 0 auto;
+}
+.nav a.nav-icon {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  min-width: 40px;
+  min-height: 40px;
+  padding: 8px 10px;
+}
+.nav a.nav-icon svg {
+  color: currentColor;
+  transition: color var(--motion-quick, 140ms) ease, transform var(--motion-quick, 140ms) ease;
+}
+.nav a.nav-icon:hover svg {
+  transform: scale(1.04);
+}
+@media (max-width: 860px) {
+  .nav a.nav-icon {
+    justify-content: flex-start;
+    width: 100%;
+    min-height: 44px;
+    padding: 12px;
+  }
+}
