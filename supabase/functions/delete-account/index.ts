@@ -57,6 +57,13 @@ Deno.serve(async (req: Request) => {
     return json({ error: 'Slike korisnika nisu mogle biti obrisane; nalog nije obrisan.' }, 500);
   }
 
+  // Newsletter subscriptions are keyed by normalized email rather than profile id.
+  if (user.email) {
+    const { error: newsletterError } = await admin.from('newsletter_subscribers')
+      .delete().eq('email', user.email.trim().toLowerCase());
+    if (newsletterError) return json({ error: 'Brisanje newsletter pretplate nije uspjelo; nalog nije obrisan.' }, 500);
+  }
+
   const { error: deleteError } = await admin.auth.admin.deleteUser(user.id);
   if (deleteError) return json({ error: 'Brisanje naloga nije uspjelo.' }, 500);
   return json({ ok: true });
