@@ -71,7 +71,7 @@ Deno.serve(async (req) => {
   for (let i = 0; i < list.length; i += 100) {
     const chunk = list.slice(i, i + 100);
     const payload = chunk.map(s => {
-      const link = `${siteUrl.replace(/\\/$/, '')}/#/odjava-email?token=${encodeURIComponent(s.token)}`;
+      const link = `${siteUrl.replace(/\/$/, '')}/#/odjava-email?token=${encodeURIComponent(s.token)}`;
       return {
         from, to: [s.email], subject,
         text: `${text}\n\n—\nOdjava s obavještenja: ${link}`,
