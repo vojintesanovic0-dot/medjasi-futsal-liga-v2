@@ -10,6 +10,7 @@ import { sectionTeamApplications } from './admin-applications.js';
 import { sectionSponsors } from './admin-sponsors.js';
 import { sectionPolls } from './admin-polls.js';
 import { sectionPush } from './admin-push.js';
+import { parseCsv, planMatches } from '../import-plan.mjs';
 
 const POS = { '': '—', golman: 'Golman', odbrana: 'Odbrana', vezni: 'Vezni', napad: 'Napad' };
 const EVENT_TYPES = { goal: 'Gol', own_goal: 'Autogol', yellow: 'Žuti karton', red: 'Crveni karton' };
@@ -27,6 +28,7 @@ const SECTIONS = {
   izmjene: { label: 'Istorija izmjena', roles: ['admin'], render: sectionAudit },
   newsletter: { label: 'Newsletter', roles: ['admin'], render: sectionNewsletter },
   greske: { label: 'Greške klijenta', roles: ['admin'], render: sectionClientErrors },
+  uvozUtakmica: { label: 'Uvoz utakmica (CSV)', roles: ['admin'], render: sectionMatchImport },
   prijaveEkipa: { label: 'Prijave ekipa', roles: ['admin'], render: sectionTeamApplications },
   partneri: { label: 'Partneri', roles: ['admin'], render: sectionSponsors },
   ankete: { label: 'Ankete', roles: ['admin', 'editor'], render: sectionPolls },
@@ -186,6 +188,44 @@ async function sectionUsers(ctx, body) {
   body.querySelectorAll('[data-role]').forEach((sel) => sel.addEventListener('change', async () => { const { error: e2 } = await sb.from('profiles').update({ role: sel.value }).eq('id', sel.dataset.role); if (e2) { toastErr(e2); return; } toast('Uloga promijenjena.'); }));
 }
 
+
+/* ---------- CSV match import ---------- */
+async function sectionMatchImport(ctx, body) {
+  const season = await getActiveSeason();
+  if (!ctx.current()) return;
+  if (!season) { body.innerHTML = empty('Prvo napravi i aktiviraj sezonu.'); return; }
+  const { data: teams, error } = await sb.from('teams').select('id,name').eq('season_id', season.id).order('name');
+  if (error) return toastErr(error);
+  body.innerHTML = `<section class="card form narrow"><h2>Uvoz utakmica (CSV)</h2>
+    <p class="muted small">Kolone: <code>kolo,domacin,gost,datum,vrijeme,mjesto,golovi_domacin,golovi_gost</code>. Datum YYYY-MM-DD, vrijeme HH:MM. Rezultat je opcionalan; utakmice bez rezultata počinju sa 0:0. Ekipe moraju odgovarati aktivnoj sezoni: ${esc(season.name)}. Maksimalno 1 MB.</p>
+    <label>CSV fajl<input id="match-import-file" type="file" accept=".csv,text/csv"></label>
+    <div id="match-import-preview" class="small" role="status" aria-live="polite"></div>
+    <button class="btn btn-primary" id="match-import-submit" type="button" disabled>Uvezi ispravne utakmice</button>
+  </section>`;
+  let plan = [];
+  const preview = body.querySelector('#match-import-preview');
+  const submit = body.querySelector('#match-import-submit');
+  body.querySelector('#match-import-file').addEventListener('change', async (event) => {
+    plan = []; submit.disabled = true; preview.textContent = '';
+    const file = event.target.files?.[0]; if (!file) return;
+    if (file.size > 1024 * 1024) { preview.textContent = 'Fajl je prevelik (maksimalno 1 MB).'; return; }
+    try {
+      const parsed = parseCsv(await file.text());
+      const result = planMatches(parsed, teams || [], season.id);
+      plan = result.plan;
+      preview.innerHTML = `<p>Spremno za uvoz: <strong>${plan.length}</strong>; grešaka: <strong>${result.errors.length}</strong>.</p>${result.errors.length ? `<ul>${result.errors.slice(0, 20).map((error) => `<li>${esc(error)}</li>`).join('')}</ul>` : ''}`;
+      submit.disabled = plan.length === 0;
+    } catch (error) { preview.textContent = error?.message || 'CSV nije moguće pročitati.'; }
+  });
+  submit.addEventListener('click', async () => {
+    if (!plan.length || !confirm(`Uvesti ${plan.length} utakmica u sezonu ${season.name}?`)) return;
+    submit.disabled = true;
+    const { error: insertError } = await sb.from('matches').insert(plan);
+    if (insertError) { submit.disabled = false; return toastErr(insertError); }
+    toast(`Uvezeno utakmica: ${plan.length}.`);
+    sectionMatchImport(ctx, body);
+  });
+}
 
 /* ---------- Client-side error reports ---------- */
 async function sectionClientErrors(ctx, body) {
