@@ -22,7 +22,8 @@ export function mountNewsletter(el) {
   activeNewsletterRoot = el;
   turnstileWidgetId = null;
   if (!turnstileReadyListenerInstalled) {
-    window.addEventListener('turnstile-ready', renderTurnstile);
+    const turnstileScript = document.getElementById('turnstile-script');
+    if (turnstileScript) turnstileScript.addEventListener('load', renderTurnstile, { once: true });
     turnstileReadyListenerInstalled = true;
   }
   el.innerHTML=`<form class="newsletter" id="nl-form"><strong>Obavještenja na e-mail</strong>
