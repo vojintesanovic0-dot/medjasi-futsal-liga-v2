@@ -26,6 +26,7 @@ const SECTIONS = {
   prijave: { label: 'Prijave', roles: ['admin', 'editor'], render: sectionReports },
   izmjene: { label: 'Istorija izmjena', roles: ['admin'], render: sectionAudit },
   newsletter: { label: 'Newsletter', roles: ['admin'], render: sectionNewsletter },
+  greske: { label: 'Greške klijenta', roles: ['admin'], render: sectionClientErrors },
   prijaveEkipa: { label: 'Prijave ekipa', roles: ['admin'], render: sectionTeamApplications },
   partneri: { label: 'Partneri', roles: ['admin'], render: sectionSponsors },
   ankete: { label: 'Ankete', roles: ['admin', 'editor'], render: sectionPolls },
@@ -185,6 +186,30 @@ async function sectionUsers(ctx, body) {
   body.querySelectorAll('[data-role]').forEach((sel) => sel.addEventListener('change', async () => { const { error: e2 } = await sb.from('profiles').update({ role: sel.value }).eq('id', sel.dataset.role); if (e2) { toastErr(e2); return; } toast('Uloga promijenjena.'); }));
 }
 
+
+/* ---------- Client-side error reports ---------- */
+async function sectionClientErrors(ctx, body) {
+  const { data, error } = await sb.from('client_errors')
+    .select('id,created_at,message,stack,url,user_agent').order('created_at', { ascending: false }).limit(100);
+  if (error) {
+    body.innerHTML = '<section class="card"><h2>Greške klijenta</h2><p class="muted">Nije moguće učitati prijavljene greške. Provjeri da je v9 SQL migracija primijenjena.</p></section>';
+    return;
+  }
+  if (!ctx.current()) return;
+  body.innerHTML = `<section class="card">
+    <div class="row-gap"><h2>Greške klijenta</h2><button class="btn btn-xs btn-danger" id="clear-client-errors" type="button">Obriši sve</button></div>
+    <p class="muted small">Prikazano najviše 100 posljednjih zapisa. Zapisi mogu sadržavati tehničke detalje, zato pristup ima samo administrator.</p>
+    ${(data || []).map((r) => `<details class="app-row"><summary><span class="muted small">${esc(r.created_at)}</span> ${esc(r.message)}</summary>
+      <p class="small muted">${esc(r.url || '')} · ${esc(r.user_agent || '')}</p><pre class="small">${esc(r.stack || '—')}</pre></details>`).join('') || empty('Nema prijavljenih grešaka.')}
+  </section>`;
+  body.querySelector('#clear-client-errors').addEventListener('click', async () => {
+    if (!confirm('Obrisati sve zapise o greškama?')) return;
+    const { error: deleteError } = await sb.from('client_errors').delete().gte('id', 0);
+    if (deleteError) return toastErr(deleteError);
+    toast('Zapisi o greškama su obrisani.');
+    sectionClientErrors(ctx, body);
+  });
+}
 
 /* ---------- Newsletter ---------- */
 async function sectionNewsletter(ctx, body) {
