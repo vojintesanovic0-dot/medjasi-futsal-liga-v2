@@ -36,7 +36,7 @@ const SECTIONS = {
   partneri: { label: 'Partneri', roles: ['admin'], render: sectionSponsors },
   ankete: { label: 'Ankete', roles: ['admin', 'editor'], render: sectionPolls },
   obavjestenja: { label: 'Push obavještenja', roles: ['admin', 'editor'], render: sectionPush },
-  grafike: { label: 'Grafike', roles: ['admin'], render: sectionGraphics },
+  grafike: { label: 'Grafike', roles: ['admin', 'editor'], render: sectionGraphics },
 };
 
 const toastErr = (e) => toast(errMsg(e), 'err');
