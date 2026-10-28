@@ -112,7 +112,7 @@ create table if not exists public.players (
   is_vice_captain boolean not null default false,
   created_at  timestamptz not null default now(),
   unique (team_id, number),
-  check (not (is_captain and is_vice_captain))
+  constraint captain_not_vice check (not (is_captain and is_vice_captain))
 );
 create unique index if not exists one_vice_per_team
   on public.players (team_id) where is_vice_captain;
