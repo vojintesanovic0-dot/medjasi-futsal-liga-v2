@@ -39,7 +39,6 @@ def call(path, method="GET", body=None):
         method=method,
         headers={
             "apikey": key,
-            "Authorization": "Bearer " + key,
             "Content-Type": "application/json",
         },
     )
