@@ -58,9 +58,10 @@ for (const table of ['profiles', 'seasons', 'teams', 'players', 'matches', 'matc
   if (!new RegExp(`create table if not exists public\\.${table}\\b`, 'i').test(sql)) fail.push(`SQL schema missing table declaration: ${table}`);
 }
 // Verify frontend data calls against schema.sql and all migrations / Edge Functions.
-const sqlAll = [sql, ...fs.readdirSync(path.join(root, 'supabase/migrations'))
-  .filter((f) => f.endsWith('.sql'))
-  .map((f) => fs.readFileSync(path.join(root, 'supabase/migrations', f), 'utf8'))].join('\n');
+const sqlFiles = sourceFiles.filter((f) => f.startsWith(path.join(root, 'supabase') + path.sep) && f.endsWith('.sql'));
+const sqlAll = [...new Set([path.resolve(root, 'supabase/schema.sql'), ...sqlFiles])]
+  .filter((f) => fs.existsSync(f))
+  .map((f) => fs.readFileSync(f, 'utf8')).join('\n');
 const frontendCode = sourceFiles.filter((f) => /\.(?:js|mjs)$/.test(f) && f.includes(`${path.sep}js${path.sep}`))
   .map((f) => fs.readFileSync(f, 'utf8')).join('\n');
 const referencedTables = new Set([...frontendCode.matchAll(/(?<!storage)\.from\(\s*['"]([a-z_]+)['"]\s*\)/g)].map((m) => m[1]));

@@ -22,6 +22,7 @@ import { registerSearch } from './pages/search.js';
 import { initSeo } from './seo.js';
 import { registerUnsubscribe } from './pages/unsubscribe.js';
 import { mountNewsletter } from './newsletter.js';
+import { initClientErrorReporting } from './errors.js';
 
 registerHome(route);
 registerStandings(route);
@@ -40,6 +41,7 @@ registerStats(route);
 registerSearch(route);
 registerUnsubscribe(route);
 mountNewsletter(document.getElementById('newsletter'));
+initClientErrorReporting();
 registerSW();
 initSeo();
 
