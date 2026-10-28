@@ -1,7 +1,7 @@
 // Server-rendered Open Graph metadata for public news sharing.
 import { createClient } from 'npm:@supabase/supabase-js@2';
 
-const SITE = (Deno.env.get('SITE_URL') ?? '').replace(/\/$/, '');
+const SITE = (Deno.env.get('SITE_URL') ?? 'https://vojintesanovic0-dot.github.io/medjasi-futsal-liga-v2').replace(/\/$/, '');
 const esc = (value: unknown) => String(value ?? '').replace(/[&<>"']/g, (c) => ({
   '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;',
 }[c]!));
