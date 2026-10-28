@@ -118,11 +118,15 @@ declare new_id integer; teams_old integer; teams_new integer; players_old intege
 begin
   select count(*) into teams_old from public.teams where season_id = 1;
   select count(*) into players_old from public.players p join public.teams t on t.id = p.team_id where t.season_id = 1;
+  update public.teams set coach_name = 'V9 test coach' where id = (select id from public.teams where season_id = 1 order by name limit 1);
+  update public.players set is_vice_captain = true where id = (select p.id from public.players p join public.teams t on t.id = p.team_id where t.season_id = 1 order by p.first_name limit 1);
   select public.rollover_season(1, 'v9-test-season', true, true) into new_id;
   select count(*) into teams_new from public.teams where season_id = new_id;
   select count(*) into players_new from public.players p join public.teams t on t.id = p.team_id where t.season_id = new_id;
   if teams_old <> teams_new then raise exception 'FAIL: season rollover team count mismatch'; end if;
   if players_old <> players_new then raise exception 'FAIL: season rollover player count mismatch'; end if;
+  if not exists (select 1 from public.teams old_t join public.teams new_t on new_t.season_id = new_id and new_t.name = old_t.name where old_t.season_id = 1 and old_t.coach_name = 'V9 test coach' and new_t.coach_name = old_t.coach_name) then raise exception 'FAIL: season rollover did not copy coach'; end if;
+  if not exists (select 1 from public.players old_p join public.teams old_t on old_t.id = old_p.team_id join public.teams new_t on new_t.season_id = new_id and new_t.name = old_t.name join public.players new_p on new_p.team_id = new_t.id and new_p.first_name = old_p.first_name and new_p.last_name = old_p.last_name where old_t.season_id = 1 and old_p.is_vice_captain and new_p.is_vice_captain) then raise exception 'FAIL: season rollover did not copy vice captain'; end if;
   select count(*) into active_count from public.seasons where is_active;
   if active_count <> 1 or not exists (select 1 from public.seasons where id = new_id and is_active) then
     raise exception 'FAIL: season rollover must leave exactly one active season';
