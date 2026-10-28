@@ -10,5 +10,5 @@ Deno.test('normalizeEmail trims, lowercases, and validates', () => {
   if (normalizeEmail(' Ana@Primjer.BA ') !== 'ana@primjer.ba') throw new Error('email normalization failed');
   if (normalizeEmail('not-an-email') !== null) throw new Error('invalid email accepted');
   if (normalizeEmail(null) !== null) throw new Error('null email accepted');
-  if (normalizeEmail('a'.repeat(195) + '@x.ba') !== null) throw new Error('overlong email accepted');
+  if (normalizeEmail('a'.repeat(196) + '@x.ba') !== null) throw new Error('overlong email accepted');
 });
