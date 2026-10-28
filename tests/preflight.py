@@ -67,7 +67,7 @@ if is_url and is_key:
         rows = json.loads(body) if status == 200 else None
     except json.JSONDecodeError:
         rows = None
-    private_blocked = status in (401, 403) or (status == 200 and rows == [])
+    private_blocked = status in (401, 403)
     check("anonimni korisnik ne dobija e-mail adrese", private_blocked, f"HTTP {status or 'mrežna greška'}")
 
     status, body = call("/rest/v1/client_errors?select=id&limit=1")
@@ -75,13 +75,13 @@ if is_url and is_key:
         rows = json.loads(body) if status == 200 else None
     except json.JSONDecodeError:
         rows = None
-    errors_blocked = status in (401, 403) or (status == 200 and rows == [])
+    errors_blocked = status in (401, 403)
     check("anonimni korisnik ne dobija izvještaje grešaka", errors_blocked, f"HTTP {status or 'mrežna greška'}")
 
     status, body = call("/functions/v1/subscribe-newsletter", "POST", {})
     # An invalid/empty request should be rejected by the deployed function, not return success.
-    function_present = status not in (0, 404, 502, 503)
-    check("Edge funkcija subscribe-newsletter je dostupna", function_present, f"HTTP {status or 'mrežna greška'}")
+    function_present = status in (400, 403)
+    check("Edge funkcija dostupna i odbija neispravan zahtjev", function_present, f"HTTP {status or 0}")
 else:
     check("Supabase provjere preskočene dok config nije ispravan", False)
 
