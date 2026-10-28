@@ -188,3 +188,18 @@
     main#app.wrap, .topbar .nav.open { animation: none; }
   }
 }
+
+
+/* Premium V2: mobilni sloj ostaje u istoj tamnoj temi */
+@media (max-width:760px) {
+  .topbar { background:rgba(8,12,9,.97); border-bottom:1px solid rgba(199,255,117,.13); }
+  .topbar .nav.open { background:rgba(5,9,6,.97); }
+  .topbar .nav.open a { background:#121b15; border-color:#2b3c30; color:#f3f8f3; }
+  .topbar .nav.open a.active { background:#c7ff75; color:#172115; }
+  .app-tabbar { background:rgba(14,21,16,.98); border-top-color:#2b3c30; }
+  .app-tabbar a,.app-tabbar button { color:#a6b7a9; }
+  .app-tabbar a.active,.app-tabbar button[aria-expanded="true"] { color:#c7ff75; }
+  .app-tabbar a.active svg { filter:drop-shadow(0 0 6px rgba(199,255,117,.3)); }
+  .card { background:linear-gradient(145deg,#17221a,#111912); border-color:#2b3c30; box-shadow:0 10px 26px rgba(0,0,0,.18); }
+  .nav { background:#121b15; border-color:#2b3c30; }
+}
