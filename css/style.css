@@ -2087,3 +2087,7 @@ tbody tr{transition:background .15s ease}
 @media(max-width:900px){.home-dashboard .home-visual::after{right:7%;top:10%;width:42px}.home-dashboard .home-visual::before{inset:4% -2% 0}}
 @media(max-width:640px){.home-dashboard .home-visual::after{right:9%;top:11%;width:34px}.home-dashboard .home-visual-orb{width:44px;border-radius:50%}.home-dashboard .home-pitch{transform:rotateY(-7deg) rotateX(3deg)}.home-dashboard .home-hero{overflow:hidden}}
 @media(prefers-reduced-motion:reduce){.home-dashboard .home-metric::after{transition:none}}
+
+
+/* v9 newsletter anti-bot widget */
+.cf-turnstile { margin: 10px 0; min-height: 65px; max-width: 100%; }
