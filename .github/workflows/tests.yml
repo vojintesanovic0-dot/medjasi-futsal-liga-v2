@@ -41,6 +41,8 @@ jobs:
           exit 1
       - name: Validate syntax, imports, assets and schema
         run: node scripts/validate-site.mjs
+      - name: Compile Python test helpers
+        run: python -m py_compile tests/check_imports.py tests/preflight.py
       - name: Validate named JavaScript imports
         run: python3 tests/check_imports.py
       - name: Create isolated test database
