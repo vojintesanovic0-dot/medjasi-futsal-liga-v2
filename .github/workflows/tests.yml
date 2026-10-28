@@ -64,6 +64,8 @@ jobs:
           deno-version: v2.x
       - name: Deno tests (shared Edge helpers)
         run: deno test supabase/functions/_shared/
+      - name: Node unit tests
+        run: node --test tests/unit/*.test.mjs
       - name: Confirm tests passed
         run: |
           ! grep -q "FAIL:" out1.txt out2.txt out3.txt
