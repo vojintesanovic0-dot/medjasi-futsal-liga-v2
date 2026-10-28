@@ -3,6 +3,8 @@
 drop policy if exists newsletter_subscribe on public.newsletter_subscribers;
 drop policy if exists newsletter_insert on public.newsletter_subscribers;
 revoke insert on public.newsletter_subscribers from public, anon, authenticated;
+-- The v2 schema also exposes a SECURITY DEFINER RPC; revoke it to prevent Turnstile bypass.
+revoke execute on function public.subscribe_newsletter(text) from public, anon, authenticated;
 
 -- A user can submit at most one team application in any rolling 24-hour window.
 -- This uses the actual v2 schema column (user_id), not the v8-only applicant_id.
