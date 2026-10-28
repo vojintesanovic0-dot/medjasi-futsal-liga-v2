@@ -95,6 +95,7 @@ create table if not exists public.teams (
   short_name  text,
   logo_url    text,
   color       text default '#22c55e',
+  coach_name  text check (coach_name is null or char_length(coach_name) between 2 and 60),
   created_at  timestamptz not null default now(),
   unique (season_id, name)
 );
@@ -108,9 +109,13 @@ create table if not exists public.players (
   position    text check (position in ('golman','odbrana','vezni','napad')),
   photo_url   text,
   is_captain  boolean not null default false,
+  is_vice_captain boolean not null default false,
   created_at  timestamptz not null default now(),
-  unique (team_id, number)
+  unique (team_id, number),
+  constraint captain_not_vice check (not (is_captain and is_vice_captain))
 );
+create unique index if not exists one_vice_per_team
+  on public.players (team_id) where is_vice_captain;
 
 -- ---------- Utakmice ----------
 create table if not exists public.matches (

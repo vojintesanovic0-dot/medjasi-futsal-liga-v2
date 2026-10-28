@@ -10,6 +10,7 @@ import { sectionTeamApplications } from './admin-applications.js';
 import { sectionSponsors } from './admin-sponsors.js';
 import { sectionPolls } from './admin-polls.js';
 import { sectionPush } from './admin-push.js';
+import { sectionGraphics } from './admin-graphics.js';
 
 const POS = { '': '—', golman: 'Golman', odbrana: 'Odbrana', vezni: 'Vezni', napad: 'Napad' };
 const EVENT_TYPES = { goal: 'Gol', own_goal: 'Autogol', yellow: 'Žuti karton', red: 'Crveni karton' };
@@ -30,6 +31,7 @@ const SECTIONS = {
   partneri: { label: 'Partneri', roles: ['admin'], render: sectionSponsors },
   ankete: { label: 'Ankete', roles: ['admin', 'editor'], render: sectionPolls },
   obavjestenja: { label: 'Push obavještenja', roles: ['admin', 'editor'], render: sectionPush },
+  grafike: { label: 'Grafike', roles: ['admin'], render: sectionGraphics },
 };
 
 const toastErr = (e) => toast(errMsg(e), 'err');
@@ -133,14 +135,23 @@ async function sectionMatches(ctx, body) {
 async function sectionTeams(ctx, body) {
   const season = await getActiveSeason(); const [teams, players] = await Promise.all([getTeams(), getPlayers()]);
   if (!ctx.current()) return;
-  body.innerHTML = `<details class="card" open><summary><strong>Nova ekipa</strong></summary><form id="new-team" class="form grid-form"><label>Naziv<input name="name" required maxlength="40"></label><label>Skraćenica<input name="short_name" maxlength="4" placeholder="MED"></label><label>Boja<input name="color" type="color" value="#22c55e"></label><label>Logo (URL)<input name="logo_url" type="url"></label><button class="btn btn-primary" type="submit" ${season ? '' : 'disabled'}>Dodaj ekipu</button></form></details>
-    ${teams.map((t) => { const squad = players.filter((p) => p.team_id === t.id).sort((a, b) => (a.number ?? 99) - (b.number ?? 99)); return `<details class="card team-admin" data-team="${esc(t.id)}"><summary>${badge(t, 'sm')} <strong>${esc(t.name)}</strong> <span class="muted">· ${squad.length} igrača</span><button class="btn btn-xs btn-danger" data-del-team>Obriši ekipu</button></summary><ul class="roster-admin">${squad.map((p) => `<li><span>${p.number ?? '–'} ${esc(p.first_name)} ${esc(p.last_name)} <span class="muted">${esc(POS[p.position] || '')}${p.is_captain ? ' · kapiten' : ''}</span></span><button class="btn btn-xs btn-ghost" data-del-player="${esc(p.id)}"><svg viewBox="0 0 24 24" width="14" height="14" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" aria-hidden="true"><path d="m6 6 12 12M18 6 6 18"/></svg></button></li>`).join('')}</ul>
-      <form class="form grid-form new-player"><label>Ime<input name="first_name" required maxlength="30"></label><label>Prezime<input name="last_name" required maxlength="30"></label><label>Broj<input name="number" type="number" min="0" max="99"></label><label>Pozicija<select name="position">${Object.entries(POS).map(([k, v]) => `<option value="${k}">${v}</option>`).join('')}</select></label><label class="check"><input name="is_captain" type="checkbox"> Kapiten</label><button class="btn btn-sm" type="submit">Dodaj igrača</button></form></details>`; }).join('') || empty('Nema ekipa.')}`;
+  body.innerHTML = `<details class="card" open><summary><strong>Nova ekipa</strong></summary><form id="new-team" class="form grid-form"><label>Naziv<input name="name" required maxlength="40"></label><label>Skraćenica<input name="short_name" maxlength="4" placeholder="MED"></label><label>Boja<input name="color" type="color" value="#22c55e"></label><label>Logo (URL)<input name="logo_url" type="url"></label><label>Trener<input name="coach_name" maxlength="60" placeholder="Ime i prezime"></label><button class="btn btn-primary" type="submit" ${season ? '' : 'disabled'}>Dodaj ekipu</button></form></details>
+    ${teams.map((t) => { const squad = players.filter((p) => p.team_id === t.id).sort((a, b) => (a.number ?? 99) - (b.number ?? 99)); return `<details class="card team-admin" data-team="${esc(t.id)}"><summary>${badge(t, 'sm')} <strong>${esc(t.name)}</strong> <span class="muted">· ${squad.length} igrača${t.coach_name ? ' · Trener: ' + esc(t.coach_name) : ''}</span><button class="btn btn-xs btn-danger" data-del-team>Obriši ekipu</button></summary><form class="form grid-form team-coach-form"><label>Trener<input name="coach_name" maxlength="60" value="${esc(t.coach_name || '')}" placeholder="Ime i prezime"></label><button class="btn btn-xs" type="submit">Sačuvaj trenera</button></form><ul class="roster-admin">${squad.map((p) => `<li><span>${p.number ?? '–'} ${esc(p.first_name)} ${esc(p.last_name)} <span class="muted">${esc(POS[p.position] || '')}${p.is_captain ? ' · kapiten' : ''}${p.is_vice_captain ? ' · zamjenik' : ''}</span></span><button class="btn btn-xs btn-ghost" data-del-player="${esc(p.id)}"><svg viewBox="0 0 24 24" width="14" height="14" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" aria-hidden="true"><path d="m6 6 12 12M18 6 6 18"/></svg></button></li>`).join('')}</ul>
+      <form class="form grid-form new-player"><label>Ime<input name="first_name" required maxlength="30"></label><label>Prezime<input name="last_name" required maxlength="30"></label><label>Broj<input name="number" type="number" min="0" max="99"></label><label>Pozicija<select name="position">${Object.entries(POS).map(([k, v]) => `<option value="${k}">${v}</option>`).join('')}</select></label><label class="check"><input name="is_captain" type="checkbox"> Kapiten</label><label class="check"><input name="is_vice" type="checkbox"> Zamjenik kapitena</label><button class="btn btn-sm" type="submit">Dodaj igrača</button></form></details>`; }).join('') || empty('Nema ekipa.')}`;
   body.querySelector('#new-team')?.addEventListener('submit', async (e) => {
     e.preventDefault(); const f = new FormData(e.target);
-    const { error } = await sb.from('teams').insert({ season_id: season.id, name: String(f.get('name')).trim(), short_name: String(f.get('short_name') || '').trim() || null, color: safeColor(f.get('color')), logo_url: String(f.get('logo_url') || '').trim() || null });
+    const { error } = await sb.from('teams').insert({ season_id: season.id, name: String(f.get('name')).trim(), short_name: String(f.get('short_name') || '').trim() || null, color: safeColor(f.get('color')), logo_url: String(f.get('logo_url') || '').trim() || null, coach_name: String(f.get('coach_name') || '').trim() || null });
     if (error) return toastErr(error); toast('Ekipa dodana.'); sectionTeams(ctx, body);
   });
+  body.querySelectorAll('.team-coach-form').forEach((form) => form.addEventListener('submit', async (e) => {
+    e.preventDefault();
+    const teamId = form.closest('[data-team]').dataset.team;
+    const coachName = String(new FormData(form).get('coach_name') || '').trim() || null;
+    if (coachName && coachName.length < 2) return toast('Ime trenera mora imati najmanje 2 znaka.', 'err');
+    const { error } = await sb.from('teams').update({ coach_name: coachName }).eq('id', teamId);
+    if (error) return toastErr(error);
+    toast('Trener je sačuvan.'); sectionTeams(ctx, body);
+  }));
   body.querySelectorAll('[data-del-team]').forEach((b) => b.addEventListener('click', async (e) => {
     e.preventDefault(); if (!confirm('Obrisati ekipu i sve njene igrače i utakmice?')) return;
     const id = b.closest('[data-team]').dataset.team; const { error } = await sb.from('teams').delete().eq('id', id); return error ? toastErr(error) : sectionTeams(ctx, body);
@@ -148,7 +159,7 @@ async function sectionTeams(ctx, body) {
   body.querySelectorAll('[data-del-player]').forEach((b) => b.addEventListener('click', async () => { const { error } = await sb.from('players').delete().eq('id', b.dataset.delPlayer); return error ? toastErr(error) : sectionTeams(ctx, body); }));
   body.querySelectorAll('.new-player').forEach((form) => form.addEventListener('submit', async (e) => {
     e.preventDefault(); const f = new FormData(form); const teamId = form.closest('[data-team]').dataset.team; const num = f.get('number');
-    const { error } = await sb.from('players').insert({ team_id: teamId, first_name: String(f.get('first_name')).trim(), last_name: String(f.get('last_name')).trim(), number: num === '' ? null : Number(num), position: f.get('position') || null, is_captain: f.get('is_captain') === 'on' });
+    const { error } = await sb.from('players').insert({ team_id: teamId, first_name: String(f.get('first_name')).trim(), last_name: String(f.get('last_name')).trim(), number: num === '' ? null : Number(num), position: f.get('position') || null, is_captain: f.get('is_captain') === 'on', is_vice_captain: f.get('is_vice') === 'on' });
     if (error) return toastErr(error); toast('Igrač dodan.'); sectionTeams(ctx, body);
   }));
 }

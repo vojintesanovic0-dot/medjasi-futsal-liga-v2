@@ -1,5 +1,6 @@
 import { getPublishedNews, getNewsBySlug } from '../api.js';
 import { esc, fmtLong, empty } from '../util.js';
+import { SUPABASE_URL } from '../config.js';
 
 export function registerNews(route) {
   route('/vijesti', async (ctx) => {
@@ -12,6 +13,6 @@ export function registerNews(route) {
     if (!ctx.current()) return;
     if (!n) { ctx.app.innerHTML = empty('Vijest nije pronađena.'); return; }
     const paras = String(n.body || '').split(/\n{2,}/).map((p) => `<p>${esc(p).replace(/\n/g, '<br>')}</p>`).join('');
-    ctx.app.innerHTML = `<a class="back" href="#/vijesti">← Sve vijesti</a><article class="article">${n.cover_url ? `<img class="cover" src="${esc(n.cover_url)}" alt="">` : ''}<p class="muted">${fmtLong(n.published_at || n.created_at)}</p><h1>${esc(n.title)}</h1>${n.excerpt ? `<p class="lead">${esc(n.excerpt)}</p>` : ''}<div class="body">${paras}</div></article>`;
+    ctx.app.innerHTML = `<a class="back" href="#/vijesti">← Sve vijesti</a><article class="article">${n.cover_url ? `<img class="cover" src="${esc(n.cover_url)}" alt="">` : ''}<p class="muted">${fmtLong(n.published_at || n.created_at)}</p><h1>${esc(n.title)}</h1>${n.excerpt ? `<p class="lead">${esc(n.excerpt)}</p>` : ''}<div class="body">${paras}</div><p><a class="btn btn-ghost btn-xs" href="${esc(SUPABASE_URL)}/functions/v1/news-og?slug=${encodeURIComponent(n.slug)}" target="_blank" rel="noopener">Link za dijeljenje</a></p></article>`;
   });
 }
