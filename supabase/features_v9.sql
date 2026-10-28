@@ -36,13 +36,13 @@ begin
   values (trim(p_name), p_activate)
   returning id into new_id;
 
-  insert into public.teams(season_id, name, short_name, logo_url, color)
-  select new_id, t.name, t.short_name, t.logo_url, t.color
+  insert into public.teams(season_id, name, short_name, logo_url, color, coach_name)
+  select new_id, t.name, t.short_name, t.logo_url, t.color, t.coach_name
   from public.teams t where t.season_id = p_from;
 
   if p_copy_players then
-    insert into public.players(team_id, first_name, last_name, number, position, photo_url, is_captain)
-    select nt.id, p.first_name, p.last_name, p.number, p.position, p.photo_url, p.is_captain
+    insert into public.players(team_id, first_name, last_name, number, position, photo_url, is_captain, is_vice_captain)
+    select nt.id, p.first_name, p.last_name, p.number, p.position, p.photo_url, p.is_captain, p.is_vice_captain
     from public.players p
     join public.teams ot on ot.id = p.team_id and ot.season_id = p_from
     join public.teams nt on nt.season_id = new_id and nt.name = ot.name;
