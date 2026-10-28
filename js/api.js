@@ -1,7 +1,7 @@
 import { sb } from './supabase.js';
 
 const unwrap = async (q) => { const { data, error } = await q; if (error) throw error; return data; };
-const TEAM = 'id,name,short_name,logo_url,color';
+const TEAM = 'id,name,short_name,logo_url,color,coach_name';
 const MATCH_SELECT = `*, home:teams!matches_home_team_id_fkey(${TEAM}), away:teams!matches_away_team_id_fkey(${TEAM})`;
 
 export const getActiveSeason = () => unwrap(sb.from('seasons').select('*').eq('is_active', true).maybeSingle());
