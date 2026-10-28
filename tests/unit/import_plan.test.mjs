@@ -11,7 +11,7 @@ test('CSV parser supports quoted commas and escaped quotes', () => {
 test('valid scheduled match is planned', () => {
   const { plan, errors } = planMatches([head, ['1','Alfa','Beta','2026-11-01','18:30','Hala','','']], teams, 7);
   assert.equal(errors.length, 0); assert.equal(plan.length, 1); assert.equal(plan[0].status, 'scheduled');
-  assert.equal(plan[0].season_id, 7); assert.equal(plan[0].home_team_id, 't1');
+  assert.equal(plan[0].season_id, 7); assert.equal(plan[0].home_team_id, 't1'); assert.equal(plan[0].home_score, 0);
 });
 test('result makes match finished', () => {
   const { plan } = planMatches([head, ['2','Alfa','Beta','2026-11-08','19:00','Hala','3','1']], teams, 7);
