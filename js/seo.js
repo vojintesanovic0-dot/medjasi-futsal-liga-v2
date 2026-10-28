@@ -6,6 +6,7 @@ const RULES = [
   [/^\/utakmica\//, 'Utakmica', 'Tok utakmice, sastavi i rezultat uživo.'],
   [/^\/tabela/, 'Tabela', 'Aktuelna tabela lige sa bodovima i formom ekipa.'],
   [/^\/statistika/, 'Statistika', 'Strijelci, asistencije i fair play lige.'],
+  [/^\/kolo\//, 'Kolo', 'Rezultati, strijelci, kartoni i najbolji igrač kola.'],
   [/^\/ekipe$|^\/ekipa\//, 'Ekipe', 'Ekipe i sastavi Međasi Futsal Lige.'],
   [/^\/vijest/, 'Vijesti', 'Najnovije vijesti iz lige.'],
   [/^\/galerija/, 'Galerija', 'Fotografije i video iz lige.'],

@@ -1,9 +1,10 @@
 // js/pages/stats.js
-import { getPlayerStats } from '../api.js';
+import { getPlayerStats, getActiveSeason, getMatches } from '../api.js';
+import { roundTabHtml } from './round.js';
 import { esc, empty } from '../util.js';
 import { badge } from '../components.js';
 
-const TABS = { goals: 'Strijelci', assists: 'Asistencije', fair: 'Fair play' };
+const TABS = { goals: 'Strijelci', assists: 'Asistencije', fair: 'Fair play', kolo: 'Po kolu' };
 
 function fairRows(stats) {
   const teams = {};
@@ -87,6 +88,9 @@ function visuals(stats, tab) {
 export function registerStats(route) {
   route('/statistika', async (ctx) => {
     const stats = await getPlayerStats();
+    const season = await getActiveSeason();
+    const matches = season ? await getMatches(season.id) : [];
+    const rounds = [...new Set(matches.map((match) => Number(match.round)).filter(Number.isInteger))].sort((a, b) => a - b);
     if (!ctx.current()) return;
     let tab = 'goals';
     const hasData = stats.some((p) => p.goals || p.assists || p.yellow || p.red);
@@ -111,6 +115,10 @@ export function registerStats(route) {
     const draw = () => {
       const body = ctx.app.querySelector('#stats-body');
       if (!body) return;
+      if (tab === 'kolo') {
+        body.innerHTML = `<section class="stats-table-panel"><div class="stats-table-heading"><div><span class="stats-overline">PREGLED SEZONE</span><h2>Statistika po kolu</h2></div><span class="stats-table-count">${rounds.length} kola</span></div>${roundTabHtml(rounds)}</section>`;
+        return;
+      }
       if (!hasData) {
         body.innerHTML = empty('Statistika će se pojaviti kad se unesu događaji utakmica.');
         return;
