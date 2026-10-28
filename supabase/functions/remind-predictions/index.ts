@@ -1,27 +1,18 @@
 // Optional scheduled push reminder. Configure CRON_SECRET and VAPID_* secrets before use.
 // Devices with followed_only=true only receive reminders for matches involving a followed team.
 import { createClient } from 'npm:@supabase/supabase-js@2';
+import { CORS } from '../_shared/cors.ts';
+import { safeEqual } from '../_shared/crypto.ts';
 import webpush from 'npm:web-push@3.6.7';
 
-const corsHeaders = {
-  'Access-Control-Allow-Origin': '*',
-  'Access-Control-Allow-Headers': 'authorization, x-client-info, apikey, content-type, x-cron-secret',
-  'Access-Control-Allow-Methods': 'POST, OPTIONS',
-};
 const json = (body: unknown, status = 200) =>
-  new Response(JSON.stringify(body), { status, headers: { ...corsHeaders, 'Content-Type': 'application/json' } });
+  new Response(JSON.stringify(body), { status, headers: { ...CORS, 'Content-Type': 'application/json' } });
 
 Deno.serve(async (req: Request) => {
-  if (req.method === 'OPTIONS') return new Response('ok', { headers: corsHeaders });
+  if (req.method === 'OPTIONS') return new Response(null, { status: 204, headers: CORS });
   if (req.method !== 'POST') return json({ error: 'Method not allowed' }, 405);
   const cronSecret = Deno.env.get('CRON_SECRET');
   const given = req.headers.get('x-cron-secret') ?? '';
-  const safeEqual = (a: string, b: string) => {
-    if (a.length !== b.length) return false;
-    let diff = 0;
-    for (let i = 0; i < a.length; i++) diff |= a.charCodeAt(i) ^ b.charCodeAt(i);
-    return diff === 0;
-  };
   if (!cronSecret || !safeEqual(given, cronSecret)) return json({ error: 'forbidden' }, 403);
 
   const url = Deno.env.get('SUPABASE_URL');

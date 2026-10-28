@@ -5,3 +5,5 @@ export const SUPABASE_ANON_KEY = 'sb_publishable_y1Dfn1nOjrJybdKr746Lfw_E8RNvkWA
 export const LEAGUE_NAME = 'Međasi Futsal Liga';
 // Web push (opciono): generiši VAPID par (npx web-push generate-vapid-keys) i upiši PUBLIC ključ ovdje.
 export const VAPID_PUBLIC_KEY = '';
+// Cloudflare Turnstile public site key. Keep the secret only in Supabase Edge Function secrets.
+export const TURNSTILE_SITE_KEY = '';

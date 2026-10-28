@@ -11,6 +11,8 @@ import { sectionSponsors } from './admin-sponsors.js';
 import { sectionPolls } from './admin-polls.js';
 import { sectionPush } from './admin-push.js';
 import { sectionGraphics } from './admin-graphics.js';
+import { openPlayerEdit, openTeamEdit } from './admin-edit.js';
+import { parseCsv, planMatches } from '../import-plan.mjs';
 
 const POS = { '': '—', golman: 'Golman', odbrana: 'Odbrana', vezni: 'Vezni', napad: 'Napad' };
 const EVENT_TYPES = { goal: 'Gol', own_goal: 'Autogol', yellow: 'Žuti karton', red: 'Crveni karton' };
@@ -27,6 +29,9 @@ const SECTIONS = {
   prijave: { label: 'Prijave', roles: ['admin', 'editor'], render: sectionReports },
   izmjene: { label: 'Istorija izmjena', roles: ['admin'], render: sectionAudit },
   newsletter: { label: 'Newsletter', roles: ['admin'], render: sectionNewsletter },
+  greske: { label: 'Greške klijenta', roles: ['admin'], render: sectionClientErrors },
+  uvozUtakmica: { label: 'Uvoz utakmica (CSV)', roles: ['admin'], render: sectionMatchImport },
+  rollover: { label: 'Nova sezona (kopija)', roles: ['admin'], render: sectionSeasonRollover },
   prijaveEkipa: { label: 'Prijave ekipa', roles: ['admin'], render: sectionTeamApplications },
   partneri: { label: 'Partneri', roles: ['admin'], render: sectionSponsors },
   ankete: { label: 'Ankete', roles: ['admin', 'editor'], render: sectionPolls },
@@ -136,7 +141,7 @@ async function sectionTeams(ctx, body) {
   const season = await getActiveSeason(); const [teams, players] = await Promise.all([getTeams(), getPlayers()]);
   if (!ctx.current()) return;
   body.innerHTML = `<details class="card" open><summary><strong>Nova ekipa</strong></summary><form id="new-team" class="form grid-form"><label>Naziv<input name="name" required maxlength="40"></label><label>Skraćenica<input name="short_name" maxlength="4" placeholder="MED"></label><label>Boja<input name="color" type="color" value="#22c55e"></label><label>Logo (URL)<input name="logo_url" type="url"></label><label>Trener<input name="coach_name" maxlength="60" placeholder="Ime i prezime"></label><button class="btn btn-primary" type="submit" ${season ? '' : 'disabled'}>Dodaj ekipu</button></form></details>
-    ${teams.map((t) => { const squad = players.filter((p) => p.team_id === t.id).sort((a, b) => (a.number ?? 99) - (b.number ?? 99)); return `<details class="card team-admin" data-team="${esc(t.id)}"><summary>${badge(t, 'sm')} <strong>${esc(t.name)}</strong> <span class="muted">· ${squad.length} igrača${t.coach_name ? ' · Trener: ' + esc(t.coach_name) : ''}</span><button class="btn btn-xs btn-danger" data-del-team>Obriši ekipu</button></summary><form class="form grid-form team-coach-form"><label>Trener<input name="coach_name" maxlength="60" value="${esc(t.coach_name || '')}" placeholder="Ime i prezime"></label><button class="btn btn-xs" type="submit">Sačuvaj trenera</button></form><ul class="roster-admin">${squad.map((p) => `<li><span>${p.number ?? '–'} ${esc(p.first_name)} ${esc(p.last_name)} <span class="muted">${esc(POS[p.position] || '')}${p.is_captain ? ' · kapiten' : ''}${p.is_vice_captain ? ' · zamjenik' : ''}</span></span><button class="btn btn-xs btn-ghost" data-del-player="${esc(p.id)}"><svg viewBox="0 0 24 24" width="14" height="14" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" aria-hidden="true"><path d="m6 6 12 12M18 6 6 18"/></svg></button></li>`).join('')}</ul>
+    ${teams.map((t) => { const squad = players.filter((p) => p.team_id === t.id).sort((a, b) => (a.number ?? 99) - (b.number ?? 99)); return `<details class="card team-admin" data-team="${esc(t.id)}"><summary>${badge(t, 'sm')} <strong>${esc(t.name)}</strong> <span class="muted">· ${squad.length} igrača${t.coach_name ? ' · Trener: ' + esc(t.coach_name) : ''}</span><button class="btn btn-xs btn-ghost" data-edit-team type="button" aria-label="Uredi ekipu ${esc(t.name)}">Uredi</button><button class="btn btn-xs btn-danger" data-del-team>Obriši ekipu</button></summary><form class="form grid-form team-coach-form"><label>Trener<input name="coach_name" maxlength="60" value="${esc(t.coach_name || '')}" placeholder="Ime i prezime"></label><button class="btn btn-xs" type="submit">Sačuvaj trenera</button></form><ul class="roster-admin">${squad.map((p) => `<li><span>${p.number ?? '–'} ${esc(p.first_name)} ${esc(p.last_name)} <span class="muted">${esc(POS[p.position] || '')}${p.is_captain ? ' · kapiten' : ''}${p.is_vice_captain ? ' · zamjenik' : ''}</span></span><button class="btn btn-xs btn-ghost" data-edit-player="${esc(p.id)}" type="button" aria-label="Uredi igrača ${esc(p.first_name)} ${esc(p.last_name)}">Uredi</button><button class="btn btn-xs btn-ghost" data-del-player="${esc(p.id)}"><svg viewBox="0 0 24 24" width="14" height="14" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" aria-hidden="true"><path d="m6 6 12 12M18 6 6 18"/></svg></button></li>`).join('')}</ul>
       <form class="form grid-form new-player"><label>Ime<input name="first_name" required maxlength="30"></label><label>Prezime<input name="last_name" required maxlength="30"></label><label>Broj<input name="number" type="number" min="0" max="99"></label><label>Pozicija<select name="position">${Object.entries(POS).map(([k, v]) => `<option value="${k}">${v}</option>`).join('')}</select></label><label class="check"><input name="is_captain" type="checkbox"> Kapiten</label><label class="check"><input name="is_vice" type="checkbox"> Zamjenik kapitena</label><button class="btn btn-sm" type="submit">Dodaj igrača</button></form></details>`; }).join('') || empty('Nema ekipa.')}`;
   body.querySelector('#new-team')?.addEventListener('submit', async (e) => {
     e.preventDefault(); const f = new FormData(e.target);
@@ -151,6 +156,14 @@ async function sectionTeams(ctx, body) {
     const { error } = await sb.from('teams').update({ coach_name: coachName }).eq('id', teamId);
     if (error) return toastErr(error);
     toast('Trener je sačuvan.'); sectionTeams(ctx, body);
+  }));
+  body.querySelectorAll('[data-edit-team]').forEach((b) => b.addEventListener('click', (event) => {
+    event.preventDefault();
+    openTeamEdit(b.closest('[data-team]').dataset.team, () => sectionTeams(ctx, body));
+  }));
+  body.querySelectorAll('[data-edit-player]').forEach((b) => b.addEventListener('click', (event) => {
+    event.preventDefault();
+    openPlayerEdit(b.dataset.editPlayer, () => sectionTeams(ctx, body));
   }));
   body.querySelectorAll('[data-del-team]').forEach((b) => b.addEventListener('click', async (e) => {
     e.preventDefault(); if (!confirm('Obrisati ekipu i sve njene igrače i utakmice?')) return;
@@ -196,6 +209,109 @@ async function sectionUsers(ctx, body) {
   body.querySelectorAll('[data-role]').forEach((sel) => sel.addEventListener('change', async () => { const { error: e2 } = await sb.from('profiles').update({ role: sel.value }).eq('id', sel.dataset.role); if (e2) { toastErr(e2); return; } toast('Uloga promijenjena.'); }));
 }
 
+
+/* ---------- Season rollover ---------- */
+async function sectionSeasonRollover(ctx, body) {
+  const seasons = await getSeasons();
+  if (!ctx.current()) return;
+  body.innerHTML = `<section class="card form narrow"><h2>Nova sezona iz postojeće</h2>
+    <p class="muted small">Kreira novu sezonu i kopira ekipe; igrači se mogu kopirati opcionalno. Postojeći podaci ostaju sačuvani.</p>
+    <form id="season-rollover-form" class="form">
+      <label>Polazna sezona<select name="from" required>${seasons.map((s) => `<option value="${esc(s.id)}" ${s.is_active ? 'selected' : ''}>${esc(s.name)}${s.is_active ? ' (aktivna)' : ''}</option>`).join('')}</select></label>
+      <label>Naziv nove sezone<input name="name" minlength="3" maxlength="30" required placeholder="2027/28"></label>
+      <label class="check"><input type="checkbox" name="copyPlayers" checked> Kopiraj igrače</label>
+      <label class="check"><input type="checkbox" name="activate"> Odmah aktiviraj novu sezonu</label>
+      <button class="btn btn-primary" type="submit" ${seasons.length ? '' : 'disabled'}>Kreiraj novu sezonu</button>
+      <p class="small muted" id="rollover-status" role="status"></p>
+    </form>
+  </section>`;
+  body.querySelector('#season-rollover-form').addEventListener('submit', async (event) => {
+    event.preventDefault();
+    const form = event.currentTarget, values = new FormData(form);
+    const name = String(values.get('name') || '').trim();
+    if (name.length < 3 || name.length > 30) return toast('Naziv sezone mora imati 3–30 znakova.', 'err');
+    if (!confirm(`Kreirati sezonu "${name}" i kopirati ekipe${values.get('copyPlayers') === 'on' ? ' i igrače' : ''}?`)) return;
+    const button = form.querySelector('button[type="submit"]');
+    const status = form.querySelector('#rollover-status');
+    button.disabled = true; status.textContent = 'Kreiram sezonu…';
+    try {
+      const { data, error } = await sb.rpc('rollover_season', {
+        p_from: Number(values.get('from')), p_name: name,
+        p_activate: values.get('activate') === 'on',
+        p_copy_players: values.get('copyPlayers') === 'on',
+      });
+      if (error) throw error;
+      status.textContent = `Nova sezona je kreirana (ID: ${data}).`;
+      toast('Nova sezona je kreirana.');
+      sectionSeasons(ctx, body);
+    } catch (error) {
+      status.textContent = error?.message || 'Kreiranje sezone nije uspjelo.';
+      button.disabled = false;
+    }
+  });
+}
+
+/* ---------- CSV match import ---------- */
+async function sectionMatchImport(ctx, body) {
+  const season = await getActiveSeason();
+  if (!ctx.current()) return;
+  if (!season) { body.innerHTML = empty('Prvo napravi i aktiviraj sezonu.'); return; }
+  const { data: teams, error } = await sb.from('teams').select('id,name').eq('season_id', season.id).order('name');
+  if (error) return toastErr(error);
+  body.innerHTML = `<section class="card form narrow"><h2>Uvoz utakmica (CSV)</h2>
+    <p class="muted small">Kolone: <code>kolo,domacin,gost,datum,vrijeme,mjesto,golovi_domacin,golovi_gost</code>. Datum YYYY-MM-DD, vrijeme HH:MM. Rezultat je opcionalan; utakmice bez rezultata počinju sa 0:0. Ekipe moraju odgovarati aktivnoj sezoni: ${esc(season.name)}. Maksimalno 1 MB.</p>
+    <label>CSV fajl<input id="match-import-file" type="file" accept=".csv,text/csv"></label>
+    <div id="match-import-preview" class="small" role="status" aria-live="polite"></div>
+    <button class="btn btn-primary" id="match-import-submit" type="button" disabled>Uvezi ispravne utakmice</button>
+  </section>`;
+  let plan = [];
+  const preview = body.querySelector('#match-import-preview');
+  const submit = body.querySelector('#match-import-submit');
+  body.querySelector('#match-import-file').addEventListener('change', async (event) => {
+    plan = []; submit.disabled = true; preview.textContent = '';
+    const file = event.target.files?.[0]; if (!file) return;
+    if (file.size > 1024 * 1024) { preview.textContent = 'Fajl je prevelik (maksimalno 1 MB).'; return; }
+    try {
+      const parsed = parseCsv(await file.text());
+      const result = planMatches(parsed, teams || [], season.id);
+      plan = result.plan;
+      preview.innerHTML = `<p>Spremno za uvoz: <strong>${plan.length}</strong>; grešaka: <strong>${result.errors.length}</strong>.</p>${result.errors.length ? `<ul>${result.errors.slice(0, 20).map((error) => `<li>${esc(error)}</li>`).join('')}</ul>` : ''}`;
+      submit.disabled = plan.length === 0;
+    } catch (error) { preview.textContent = error?.message || 'CSV nije moguće pročitati.'; }
+  });
+  submit.addEventListener('click', async () => {
+    if (!plan.length || !confirm(`Uvesti ${plan.length} utakmica u sezonu ${season.name}?`)) return;
+    submit.disabled = true;
+    const { error: insertError } = await sb.from('matches').insert(plan);
+    if (insertError) { submit.disabled = false; return toastErr(insertError); }
+    toast(`Uvezeno utakmica: ${plan.length}.`);
+    sectionMatchImport(ctx, body);
+  });
+}
+
+/* ---------- Client-side error reports ---------- */
+async function sectionClientErrors(ctx, body) {
+  const { data, error } = await sb.from('client_errors')
+    .select('id,created_at,message,stack,url,user_agent').order('created_at', { ascending: false }).limit(100);
+  if (error) {
+    body.innerHTML = '<section class="card"><h2>Greške klijenta</h2><p class="muted">Nije moguće učitati prijavljene greške. Provjeri da je v9 SQL migracija primijenjena.</p></section>';
+    return;
+  }
+  if (!ctx.current()) return;
+  body.innerHTML = `<section class="card">
+    <div class="row-gap"><h2>Greške klijenta</h2><button class="btn btn-xs btn-danger" id="clear-client-errors" type="button">Obriši sve</button></div>
+    <p class="muted small">Prikazano najviše 100 posljednjih zapisa. Zapisi mogu sadržavati tehničke detalje, zato pristup ima samo administrator.</p>
+    ${(data || []).map((r) => `<details class="app-row"><summary><span class="muted small">${esc(r.created_at)}</span> ${esc(r.message)}</summary>
+      <p class="small muted">${esc(r.url || '')} · ${esc(r.user_agent || '')}</p><pre class="small">${esc(r.stack || '—')}</pre></details>`).join('') || empty('Nema prijavljenih grešaka.')}
+  </section>`;
+  body.querySelector('#clear-client-errors').addEventListener('click', async () => {
+    if (!confirm('Obrisati sve zapise o greškama?')) return;
+    const { error: deleteError } = await sb.from('client_errors').delete().gte('id', 0);
+    if (deleteError) return toastErr(deleteError);
+    toast('Zapisi o greškama su obrisani.');
+    sectionClientErrors(ctx, body);
+  });
+}
 
 /* ---------- Newsletter ---------- */
 async function sectionNewsletter(ctx, body) {

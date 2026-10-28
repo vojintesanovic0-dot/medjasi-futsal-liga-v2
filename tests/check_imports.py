@@ -6,7 +6,7 @@ import sys
 
 ROOT = pathlib.Path(__file__).resolve().parent.parent
 FILES = [
-    path for path in ROOT.rglob("*.js")
+    path for path in ROOT.rglob("*") if path.is_file() and path.suffix in {".js", ".mjs"}
     if ".git" not in path.parts and "node_modules" not in path.parts
 ]
 EXPORTS = {}

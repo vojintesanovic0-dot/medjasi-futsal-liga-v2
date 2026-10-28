@@ -5,3 +5,6 @@ verify_jwt = false
 
 [functions.news-og]
 verify_jwt = false
+
+[functions.subscribe-newsletter]
+verify_jwt = false
