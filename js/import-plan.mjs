@@ -67,7 +67,7 @@ export function planMatches(rows, teams, seasonId) {
       season_id: seasonId, round, home_team_id: home, away_team_id: away,
       scheduled_at: when.toISOString(), venue: get('mjesto') || null,
       status: hasScore ? 'finished' : 'scheduled',
-      home_score: hasScore ? hScore : null, away_score: hasScore ? aScore : null,
+      home_score: hasScore ? hScore : 0, away_score: hasScore ? aScore : 0,
     });
   });
   return { plan, errors };
