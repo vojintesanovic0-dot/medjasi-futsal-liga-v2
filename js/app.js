@@ -73,7 +73,21 @@ async function boot() {
   nav.addEventListener('click', (e) => { if (e.target === nav) setMore(false); });
   window.addEventListener('hashchange', () => setMore(false));
 
-  await initAuth();
+  // Ne dozvoli da nedostupna auth/baza blokira cijelu javnu aplikaciju.
+  // Ako se auth inicijalizacija oduži, stranice će se ipak prikazati, a auth može završiti naknadno.
+  let authTimer;
+  try {
+    await Promise.race([
+      initAuth(),
+      new Promise((_, reject) => { authTimer = setTimeout(() => reject(new Error('AUTH_TIMEOUT')), 8000); }),
+    ]);
+  } catch (e) {
+    toast(e?.message === 'AUTH_TIMEOUT'
+      ? 'Prijava/baza kasni; prikazujemo javne stranice.'
+      : 'Prijava trenutno nije dostupna; javne stranice su i dalje dostupne.', 'err');
+  } finally {
+    clearTimeout(authTimer);
+  }
   renderNavUser();
   onAuthChange((_st, event) => {
     renderNavUser();
