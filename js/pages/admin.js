@@ -29,6 +29,7 @@ const SECTIONS = {
   newsletter: { label: 'Newsletter', roles: ['admin'], render: sectionNewsletter },
   greske: { label: 'Greške klijenta', roles: ['admin'], render: sectionClientErrors },
   uvozUtakmica: { label: 'Uvoz utakmica (CSV)', roles: ['admin'], render: sectionMatchImport },
+  rollover: { label: 'Nova sezona (kopija)', roles: ['admin'], render: sectionSeasonRollover },
   prijaveEkipa: { label: 'Prijave ekipa', roles: ['admin'], render: sectionTeamApplications },
   partneri: { label: 'Partneri', roles: ['admin'], render: sectionSponsors },
   ankete: { label: 'Ankete', roles: ['admin', 'editor'], render: sectionPolls },
@@ -188,6 +189,47 @@ async function sectionUsers(ctx, body) {
   body.querySelectorAll('[data-role]').forEach((sel) => sel.addEventListener('change', async () => { const { error: e2 } = await sb.from('profiles').update({ role: sel.value }).eq('id', sel.dataset.role); if (e2) { toastErr(e2); return; } toast('Uloga promijenjena.'); }));
 }
 
+
+/* ---------- Season rollover ---------- */
+async function sectionSeasonRollover(ctx, body) {
+  const seasons = await getSeasons();
+  if (!ctx.current()) return;
+  body.innerHTML = `<section class="card form narrow"><h2>Nova sezona iz postojeće</h2>
+    <p class="muted small">Kreira novu sezonu i kopira ekipe; igrači se mogu kopirati opcionalno. Postojeći podaci ostaju sačuvani.</p>
+    <form id="season-rollover-form" class="form">
+      <label>Polazna sezona<select name="from" required>${seasons.map((s) => `<option value="${esc(s.id)}" ${s.is_active ? 'selected' : ''}>${esc(s.name)}${s.is_active ? ' (aktivna)' : ''}</option>`).join('')}</select></label>
+      <label>Naziv nove sezone<input name="name" minlength="3" maxlength="30" required placeholder="2027/28"></label>
+      <label class="check"><input type="checkbox" name="copyPlayers" checked> Kopiraj igrače</label>
+      <label class="check"><input type="checkbox" name="activate"> Odmah aktiviraj novu sezonu</label>
+      <button class="btn btn-primary" type="submit" ${seasons.length ? '' : 'disabled'}>Kreiraj novu sezonu</button>
+      <p class="small muted" id="rollover-status" role="status"></p>
+    </form>
+  </section>`;
+  body.querySelector('#season-rollover-form').addEventListener('submit', async (event) => {
+    event.preventDefault();
+    const form = event.currentTarget, values = new FormData(form);
+    const name = String(values.get('name') || '').trim();
+    if (name.length < 3 || name.length > 30) return toast('Naziv sezone mora imati 3–30 znakova.', 'err');
+    if (!confirm(`Kreirati sezonu "${name}" i kopirati ekipe${values.get('copyPlayers') === 'on' ? ' i igrače' : ''}?`)) return;
+    const button = form.querySelector('button[type="submit"]');
+    const status = form.querySelector('#rollover-status');
+    button.disabled = true; status.textContent = 'Kreiram sezonu…';
+    try {
+      const { data, error } = await sb.rpc('rollover_season', {
+        p_from: Number(values.get('from')), p_name: name,
+        p_activate: values.get('activate') === 'on',
+        p_copy_players: values.get('copyPlayers') === 'on',
+      });
+      if (error) throw error;
+      status.textContent = `Nova sezona je kreirana (ID: ${data}).`;
+      toast('Nova sezona je kreirana.');
+      sectionSeasons(ctx, body);
+    } catch (error) {
+      status.textContent = error?.message || 'Kreiranje sezone nije uspjelo.';
+      button.disabled = false;
+    }
+  });
+}
 
 /* ---------- CSV match import ---------- */
 async function sectionMatchImport(ctx, body) {
